@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>UR · Scout DB v2</title>
+<title>UR · ScoutDB v4</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;background:#0e1a2e;color:#e2e8f0;min-height:100vh}
@@ -254,27 +253,25 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 /* SUB INDICATOR */
 .sub-pill{display:inline-flex;align-items:center;gap:3px;background:rgba(246,201,14,.12);border:1px solid rgba(246,201,14,.3);color:#f6c90e;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700}
 @media(max-width:640px){
-.frow,.frow3,.frow4{grid-template-columns:1fr}
-.pgrid,.rcgrid{grid-template-columns:1fr}
-.srow{grid-template-columns:1fr 1fr}
-.pfgrid{grid-template-columns:repeat(3,1fr)}
-.modal{padding:14px}
-.ntab{padding:9px 11px;font-size:11px}
-.ttl{font-size:13px}
-.page{padding:11px}
-.mstats{grid-template-columns:1fr}
-.tgrid,.rgrid{grid-template-columns:1fr 1fr}
-.ctx-grid{grid-template-columns:1fr}
-.score-banner{grid-template-columns:1fr auto 1fr}
+  .frow,.frow3,.frow4{grid-template-columns:1fr}
+  .pgrid,.rcgrid{grid-template-columns:1fr}
+  .srow{grid-template-columns:1fr 1fr}
+  .pfgrid{grid-template-columns:repeat(3,1fr)}
+  .modal{padding:14px}
+  .ntab{padding:9px 11px;font-size:11px}
+  .ttl{font-size:13px}
+  .page{padding:11px}
+  .mstats{grid-template-columns:1fr}
+  .tgrid,.rgrid{grid-template-columns:1fr 1fr}
+  .ctx-grid{grid-template-columns:1fr}
+  .score-banner{grid-template-columns:1fr auto 1fr}
 }
 </style>
-
 </head>
 <body>
 <div id="toast"></div>
 
 <!-- LOGIN -->
-
 <div id="login-page">
   <div id="lform" class="lbox">
     <div class="logo">Scout<span>DB</span></div>
@@ -308,7 +305,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 </div>
 
 <!-- APP -->
-
 <div id="app">
   <div class="topbar">
     <div class="ttl">Union <span>Rochefortoise</span></div>
@@ -335,7 +331,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- DASHBOARD -->
-
   <div class="page active" id="p-dash">
     <div class="tbox">
       <div class="tbox-h"><div class="tbox-i">📅</div><div><div style="font-size:17px;font-weight:900;color:#fff">Aujourd'hui</div><div style="font-size:11px;color:#718096" id="tdate">—</div></div></div>
@@ -348,7 +343,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- JOUEURS -->
-
   <div class="page" id="p-pl">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:7px">
       <div style="font-size:21px;font-weight:900;color:#fff">Effectif <span style="color:#63b3ed">Complet</span><div style="font-size:12px;color:#718096" id="pcnt">0 joueurs</div></div>
@@ -369,144 +363,139 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- MATCH -->
-
   <div class="page" id="p-mt">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:7px">
       <div><div style="font-size:21px;font-weight:900;color:#fff">Préparation <span style="color:#63b3ed">Match</span></div><div style="font-size:12px;color:#718096">Fiche · Score · Composition · Statistiques</div></div>
       <div style="display:flex;gap:6px"><button class="btn btn-o btn-sm" onclick="resetMatch()">🔄 Reset</button><button class="btn btn-p" onclick="saveMatch()">💾 Enregistrer</button></div>
     </div>
 
-```
-<!-- FICHE MATCH -->
-<div class="sec"><div class="stit">🆚 Fiche match</div>
-  <div class="frow">
-    <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="mdate"></div>
-    <div class="fg"><label class="fl">Adversaire</label><input type="text" class="fi" id="madv" placeholder="ex: Habay Lorraine" oninput="document.getElementById('madvlbl').textContent=this.value||'Adv.'"></div>
-  </div>
-  <!-- SCORE BANNER FIXED -->
-  <div class="score-banner">
-    <div class="score-team home">
-      <div class="score-team-name home">UR</div>
-      <div style="font-size:10px;color:#718096">Domicile</div>
-    </div>
-    <div class="score-center">
-      <input type="number" min="0" max="20" id="msu" class="scorei" placeholder="—">
-      <span class="scores">:</span>
-      <input type="number" min="0" max="20" id="msa" class="scorei" placeholder="—">
-    </div>
-    <div class="score-team away">
-      <div class="score-team-name away" id="madvlbl">Adv.</div>
-      <div style="font-size:10px;color:#718096">Visiteur</div>
-    </div>
-  </div>
-  <div class="frow">
-    <div class="fg"><label class="fl">Lieu</label><select class="fs" id="mlieu"><option value="">—</option><option>Domicile</option><option>Extérieur</option></select></div>
-    <div class="fg"><label class="fl">Type compétition</label><select class="fs" id="mcomptype"><option value="championnat">🏆 Championnat</option><option value="coupe">🥇 Coupe</option><option value="amical">🤝 Amical</option></select></div>
-  </div>
-  <div class="fg"><label class="fl">Détail compétition (optionnel)</label><input type="text" class="fi" id="mcomp" placeholder="ex: Championnat D1 ACFF — J5"></div>
-</div>
-
-<!-- CONTEXTE TERRAIN -->
-<div class="sec"><div class="stit">🌍 Contexte du match</div>
-  <div class="frow3" style="margin-bottom:9px">
-    <div>
-      <div class="fl">Surface</div>
-      <div class="ctx-grid" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="ctx-btn" onclick="selCtx('surface',this,'Herbe')">🌿<br><span style="font-size:10px">Herbe</span></div>
-        <div class="ctx-btn" onclick="selCtx('surface',this,'Synthétique')">🔵<br><span style="font-size:10px">Synthétique</span></div>
-        <div class="ctx-btn" onclick="selCtx('surface',this,'Hybride')">🟡<br><span style="font-size:10px">Hybride</span></div>
+    <!-- FICHE MATCH -->
+    <div class="sec"><div class="stit">🆚 Fiche match</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="mdate"></div>
+        <div class="fg"><label class="fl">Adversaire</label><input type="text" class="fi" id="madv" placeholder="ex: Habay Lorraine" oninput="document.getElementById('madvlbl').textContent=this.value||'Adv.'"></div>
       </div>
-      <input type="hidden" id="msurf">
-    </div>
-    <div>
-      <div class="fl">Format</div>
-      <div class="ctx-grid" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="ctx-btn" onclick="selCtx('format',this,'11v11')">👥<br><span style="font-size:10px">11 vs 11</span></div>
-        <div class="ctx-btn" onclick="selCtx('format',this,'8v8')">👤<br><span style="font-size:10px">8 vs 8</span></div>
-        <div class="ctx-btn" onclick="selCtx('format',this,'5v5')">⚡<br><span style="font-size:10px">5 vs 5</span></div>
+      <!-- SCORE BANNER FIXED -->
+      <div class="score-banner">
+        <div class="score-team home">
+          <div class="score-team-name home">UR</div>
+          <div style="font-size:10px;color:#718096">Domicile</div>
+        </div>
+        <div class="score-center">
+          <input type="number" min="0" max="20" id="msu" class="scorei" placeholder="—">
+          <span class="scores">:</span>
+          <input type="number" min="0" max="20" id="msa" class="scorei" placeholder="—">
+        </div>
+        <div class="score-team away">
+          <div class="score-team-name away" id="madvlbl">Adv.</div>
+          <div style="font-size:10px;color:#718096">Visiteur</div>
+        </div>
       </div>
-      <input type="hidden" id="mformat">
-    </div>
-    <div>
-      <div class="fl">Taille du terrain</div>
-      <div class="ctx-grid" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="ctx-btn" onclick="selCtx('taille',this,'Grand')">⬛<br><span style="font-size:10px">Grand</span></div>
-        <div class="ctx-btn" onclick="selCtx('taille',this,'Moyen')">🔲<br><span style="font-size:10px">Moyen</span></div>
-        <div class="ctx-btn" onclick="selCtx('taille',this,'Petit')">▪️<br><span style="font-size:10px">Petit</span></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Lieu</label><select class="fs" id="mlieu"><option value="">—</option><option>Domicile</option><option>Extérieur</option></select></div>
+        <div class="fg"><label class="fl">Type compétition</label><select class="fs" id="mcomptype"><option value="championnat">🏆 Championnat</option><option value="coupe">🥇 Coupe</option><option value="amical">🤝 Amical</option></select></div>
       </div>
-      <input type="hidden" id="mtaille">
+      <div class="fg"><label class="fl">Détail compétition (optionnel)</label><input type="text" class="fi" id="mcomp" placeholder="ex: Championnat D1 ACFF — J5"></div>
     </div>
-  </div>
-</div>
 
-<!-- FORMATION -->
-<div class="sec"><div class="stit">🗂 Schéma de jeu</div>
-  <div class="form-grid" id="form-picker"></div>
-  <input type="hidden" id="mform" value="4-3-3">
-</div>
+    <!-- CONTEXTE TERRAIN -->
+    <div class="sec"><div class="stit">🌍 Contexte du match</div>
+      <div class="frow3" style="margin-bottom:9px">
+        <div>
+          <div class="fl">Surface</div>
+          <div class="ctx-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="ctx-btn" onclick="selCtx('surface',this,'Herbe')">🌿<br><span style="font-size:10px">Herbe</span></div>
+            <div class="ctx-btn" onclick="selCtx('surface',this,'Synthétique')">🔵<br><span style="font-size:10px">Synthétique</span></div>
+            <div class="ctx-btn" onclick="selCtx('surface',this,'Hybride')">🟡<br><span style="font-size:10px">Hybride</span></div>
+          </div>
+          <input type="hidden" id="msurf">
+        </div>
+        <div>
+          <div class="fl">Format</div>
+          <div class="ctx-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="ctx-btn" onclick="selCtx('format',this,'11v11')">👥<br><span style="font-size:10px">11 vs 11</span></div>
+            <div class="ctx-btn" onclick="selCtx('format',this,'8v8')">👤<br><span style="font-size:10px">8 vs 8</span></div>
+            <div class="ctx-btn" onclick="selCtx('format',this,'5v5')">⚡<br><span style="font-size:10px">5 vs 5</span></div>
+          </div>
+          <input type="hidden" id="mformat">
+        </div>
+        <div>
+          <div class="fl">Taille du terrain</div>
+          <div class="ctx-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="ctx-btn" onclick="selCtx('taille',this,'Grand')">⬛<br><span style="font-size:10px">Grand</span></div>
+            <div class="ctx-btn" onclick="selCtx('taille',this,'Moyen')">🔲<br><span style="font-size:10px">Moyen</span></div>
+            <div class="ctx-btn" onclick="selCtx('taille',this,'Petit')">▪️<br><span style="font-size:10px">Petit</span></div>
+          </div>
+          <input type="hidden" id="mtaille">
+        </div>
+      </div>
+    </div>
 
-<!-- VUE GLOBALE -->
-<div class="sec"><div class="stit">📊 Vue globale</div>
-  <div class="mstats">
-    <div class="sbox"><div class="snum" id="mn">0/11</div><div class="slbl">Titulaires</div></div>
-    <div class="sbox" style="border-left-color:#68d391"><div class="snum" style="color:#68d391" id="movr">—</div><div class="slbl">OVR moyen</div></div>
-    <div class="sbox" style="border-left-color:#f6c90e"><div class="snum" style="color:#f6c90e" id="mrep">0/7</div><div class="slbl">Remplaçants</div></div>
-  </div>
-</div>
+    <!-- FORMATION -->
+    <div class="sec"><div class="stit">🗂 Schéma de jeu</div>
+      <div class="form-grid" id="form-picker"></div>
+      <input type="hidden" id="mform" value="4-3-3">
+    </div>
 
-<!-- RAPPORT COMPOSITION -->
-<div class="sec" id="compo-report-sec" style="display:none;border:1px solid rgba(99,179,237,.3);background:linear-gradient(135deg,rgba(99,179,237,.05),rgba(167,139,250,.03))">
-  <div class="stit">🤖 Rapport tactique de la composition</div>
-  <div id="compo-report"></div>
-</div>
+    <!-- VUE GLOBALE -->
+    <div class="sec"><div class="stit">📊 Vue globale</div>
+      <div class="mstats">
+        <div class="sbox"><div class="snum" id="mn">0/11</div><div class="slbl">Titulaires</div></div>
+        <div class="sbox" style="border-left-color:#68d391"><div class="snum" style="color:#68d391" id="movr">—</div><div class="slbl">OVR moyen</div></div>
+        <div class="sbox" style="border-left-color:#f6c90e"><div class="snum" style="color:#f6c90e" id="mrep">0/7</div><div class="slbl">Remplaçants</div></div>
+      </div>
+    </div>
 
-<div class="sec"><div class="stit" id="mtit-label">⚽ Titulaires (4-3-3)</div><div class="tgrid" id="mtit"></div></div>
-<div class="sec"><div class="stit">🔄 Remplaçants (7)</div><div class="rgrid" id="mrmp"></div></div>
+    <!-- RAPPORT COMPOSITION -->
+    <div class="sec" id="compo-report-sec" style="display:none;border:1px solid rgba(99,179,237,.3);background:linear-gradient(135deg,rgba(99,179,237,.05),rgba(167,139,250,.03))">
+      <div class="stit">🤖 Rapport tactique de la composition</div>
+      <div id="compo-report"></div>
+    </div>
 
-<!-- BUTEURS & STATS -->
-<div class="sec"><div class="stit">⚽ Buteurs & Passes décisives</div>
-  <div style="font-size:11px;color:#718096;margin-bottom:9px">Enregistrez chaque but avec son auteur, l'éventu​el passeur décisif, la minute et si c'est après un changement.</div>
-  <div id="goal-list"></div>
-  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
-    <select class="fs" id="gnew-team" style="flex:0 0 100px"><option value="UR">⚽ UR</option><option value="Adv">🔴 Adv.</option></select>
-    <select class="fs" id="gnew-player" style="flex:1;min-width:130px"><option value="">Buteur…</option></select>
-    <select class="fs" id="gnew-assist" style="flex:1;min-width:130px"><option value="">Passeur (opt.)…</option></select>
-    <input type="number" min="1" max="120" class="fi" id="gnew-min" placeholder="Min." style="width:70px">
-    <select class="fs" id="gnew-type" style="flex:0 0 110px"><option value="jeu">Jeu ouvert</option><option value="cpa">Coup franc</option><option value="pen">Penalty</option><option value="csc">CSC</option></select>
-    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#718096;cursor:pointer"><input type="checkbox" id="gnew-postchg" style="accent-color:#f6c90e"> Après chgt</label>
-    <button class="btn btn-p btn-sm" onclick="addGoal()">+ But</button>
-  </div>
-</div>
+    <div class="sec"><div class="stit" id="mtit-label">⚽ Titulaires (4-3-3)</div><div class="tgrid" id="mtit"></div></div>
+    <div class="sec"><div class="stit">🔄 Remplaçants (7)</div><div class="rgrid" id="mrmp"></div></div>
 
-<!-- TEMPS DE JEU -->
-<div class="sec"><div class="stit">⏱ Temps de jeu & Remplacements</div>
-  <div style="font-size:11px;color:#718096;margin-bottom:9px">Notez les changements effectués avec la minute. Le temps de jeu est calculé automatiquement sur 90 min.</div>
-  <div id="sub-list"></div>
-  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
-    <select class="fs" id="snew-out" style="flex:1;min-width:130px"><option value="">Joueur sort…</option></select>
-    <select class="fs" id="snew-in" style="flex:1;min-width:130px"><option value="">Joueur entre…</option></select>
-    <input type="number" min="1" max="120" class="fi" id="snew-min" placeholder="Min." style="width:70px">
-    <button class="btn btn-o btn-sm" onclick="addSub()">+ Changement</button>
-  </div>
-</div>
+    <!-- BUTEURS & STATS -->
+    <div class="sec"><div class="stit">⚽ Buteurs & Passes décisives</div>
+      <div style="font-size:11px;color:#718096;margin-bottom:9px">Enregistrez chaque but avec son auteur, l'éventu​el passeur décisif, la minute et si c'est après un changement.</div>
+      <div id="goal-list"></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+        <select class="fs" id="gnew-team" style="flex:0 0 100px"><option value="UR">⚽ UR</option><option value="Adv">🔴 Adv.</option></select>
+        <select class="fs" id="gnew-player" style="flex:1;min-width:130px"><option value="">Buteur…</option></select>
+        <select class="fs" id="gnew-assist" style="flex:1;min-width:130px"><option value="">Passeur (opt.)…</option></select>
+        <input type="number" min="1" max="120" class="fi" id="gnew-min" placeholder="Min." style="width:70px">
+        <select class="fs" id="gnew-type" style="flex:0 0 110px"><option value="jeu">Jeu ouvert</option><option value="cpa">Coup franc</option><option value="pen">Penalty</option><option value="csc">CSC</option></select>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#718096;cursor:pointer"><input type="checkbox" id="gnew-postchg" style="accent-color:#f6c90e"> Après chgt</label>
+        <button class="btn btn-p btn-sm" onclick="addGoal()">+ But</button>
+      </div>
+    </div>
 
-<!-- RAPPORT QUART HEURE -->
-<div class="sec"><div class="stit">📈 Rapport buts par quart d'heure</div>
-  <div id="qh-report"><div style="color:#718096;font-size:12px">Enregistrez des buts pour afficher le rapport.</div></div>
-</div>
+    <!-- TEMPS DE JEU -->
+    <div class="sec"><div class="stit">⏱ Temps de jeu & Remplacements</div>
+      <div style="font-size:11px;color:#718096;margin-bottom:9px">Notez les changements effectués avec la minute. Le temps de jeu est calculé automatiquement sur 90 min.</div>
+      <div id="sub-list"></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+        <select class="fs" id="snew-out" style="flex:1;min-width:130px"><option value="">Joueur sort…</option></select>
+        <select class="fs" id="snew-in" style="flex:1;min-width:130px"><option value="">Joueur entre…</option></select>
+        <input type="number" min="1" max="120" class="fi" id="snew-min" placeholder="Min." style="width:70px">
+        <button class="btn btn-o btn-sm" onclick="addSub()">+ Changement</button>
+      </div>
+    </div>
 
-<!-- HISTORIQUE -->
-<div class="sec">
-  <div class="stit">📋 Historique des matchs</div>
-  <div id="mbilan"></div>
-  <div id="mhist" class="mhist"></div>
-</div>
-```
+    <!-- RAPPORT QUART HEURE -->
+    <div class="sec"><div class="stit">📈 Rapport buts par quart d'heure</div>
+      <div id="qh-report"><div style="color:#718096;font-size:12px">Enregistrez des buts pour afficher le rapport.</div></div>
+    </div>
 
+    <!-- HISTORIQUE -->
+    <div class="sec">
+      <div class="stit">📋 Historique des matchs</div>
+      <div id="mbilan"></div>
+      <div id="mhist" class="mhist"></div>
+    </div>
   </div>
 
   <!-- DATA -->
-
   <div class="page" id="p-data">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:7px">
       <div><div style="font-size:21px;font-weight:900;color:#fff">Données <span style="color:#63b3ed">cumulées</span></div><div style="font-size:12px;color:#718096" id="data-cnt">— matchs</div></div>
@@ -521,7 +510,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- ADN -->
-
   <div class="page" id="p-adn">
     <div style="font-size:21px;font-weight:900;color:#fff;margin-bottom:5px">ADN <span style="color:#63b3ed">de l'Équipe</span></div>
     <div style="font-size:12px;color:#718096;margin-bottom:16px">Rapport automatisé · Forces · Lacunes · Recrutement à cibler</div>
@@ -529,7 +517,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- RECRUTEMENT -->
-
   <div class="page" id="p-rc">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:7px">
       <div><div style="font-size:21px;font-weight:900;color:#fff">Recrutement <span style="color:#63b3ed">Cibles</span></div><div style="font-size:12px;color:#718096" id="rccnt">0 cible</div></div>
@@ -543,7 +530,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- COMPARATIF -->
-
   <div class="page" id="p-cmp">
     <div style="font-size:21px;font-weight:900;color:#fff;margin-bottom:14px">Tableau <span style="color:#63b3ed">Comparatif</span></div>
     <div class="sec"><div class="stit">⚖️ Comparer</div>
@@ -559,7 +545,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- ÉVALUATIONS -->
-
   <div class="page" id="p-ev">
     <div style="font-size:21px;font-weight:900;color:#fff;margin-bottom:14px">Évaluation <span style="color:#63b3ed">Mensuelle</span></div>
     <div class="sec"><div class="stit">📋 Nouvelle évaluation</div>
@@ -577,7 +562,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
   </div>
 
   <!-- ADMIN -->
-
   <div class="page" id="p-adm">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:7px">
       <div style="font-size:21px;font-weight:900;color:#fff">Admin <span style="color:#63b3ed">Staff</span></div>
@@ -589,7 +573,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 </div>
 
 <!-- MODAL JOUEUR -->
-
 <div class="overlay" id="m-pl" onclick="closeOut(event,'m-pl')">
   <div class="modal">
     <button class="mclose" onclick="closeMod('m-pl')">✕</button>
@@ -671,11 +654,9 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 </div>
 
 <!-- MODAL DETAIL JOUEUR -->
-
 <div class="overlay" id="m-dt" onclick="closeOut(event,'m-dt')"><div class="modal"><button class="mclose" onclick="closeMod('m-dt')">✕</button><div id="dtc"></div></div></div>
 
 <!-- MODAL CHOISIR JOUEUR -->
-
 <div class="overlay" id="m-ch" onclick="closeOut(event,'m-ch')">
   <div class="modal" style="max-width:500px"><button class="mclose" onclick="closeMod('m-ch')">✕</button>
     <div class="mtit" id="chtit">Choisir un joueur</div>
@@ -685,7 +666,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 </div>
 
 <!-- MODAL RECRUTEMENT -->
-
 <div class="overlay" id="m-rc" onclick="closeOut(event,'m-rc')">
   <div class="modal">
     <button class="mclose" onclick="closeMod('m-rc')">✕</button>
@@ -745,11 +725,9 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 </div>
 
 <!-- MODAL DETAIL CIBLE -->
-
 <div class="overlay" id="m-rcd" onclick="closeOut(event,'m-rcd')"><div class="modal"><button class="mclose" onclick="closeMod('m-rcd')">✕</button><div id="rcdc"></div></div></div>
 
 <!-- MODAL COMPARER CIBLE / JOUEUR -->
-
 <div class="overlay" id="m-rcc" onclick="closeOut(event,'m-rcc')">
   <div class="modal" style="max-width:600px"><button class="mclose" onclick="closeMod('m-rcc')">✕</button>
     <div class="mtit">⚖️ Comparer avec l'effectif</div>
@@ -759,7 +737,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 </div>
 
 <!-- MODAL CONFIG -->
-
 <div class="overlay" id="m-cfg" onclick="closeOut(event,'m-cfg')">
   <div class="modal">
     <button class="mclose" onclick="closeMod('m-cfg')">✕</button>
@@ -783,7 +760,6 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 </div>
 
 <!-- MODAL CRÉER COMPTE -->
-
 <div class="overlay" id="m-as" onclick="closeOut(event,'m-as')">
   <div class="modal">
     <button class="mclose" onclick="closeMod('m-as')">✕</button>
@@ -1977,162 +1953,160 @@ function expPDF(id){
   const o=ovr(p),tA=cAvg(p,SKT),pA=cAvg(p,SKP),mA=cAvg(p,SKM),pfc=p.profil?PF[p.profil]:null,comps=p.profilComps?p.profilComps.split(',').filter(Boolean):[],objs=p.objectifs||[],gps=p.gps||{};
   const plGoals=matchs.reduce((acc,m)=>{(m.goals||[]).forEach(g=>{if(g.pid===id&&g.team==='UR')acc.goals++;if(g.assist===id)acc.assists++;});return acc;},{goals:0,assists:0});
   let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+p.prenom+' '+p.nom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial;background:#f8f9fa;color:#333;padding:25px;max-width:800px;margin:0 auto;font-size:13px}.hdr{background:linear-gradient(135deg,#0A1628,#1B3A6B);color:#fff;padding:22px;border-radius:10px;margin-bottom:16px}.sec{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:14px;margin-bottom:11px}.sec h3{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#2557a7;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}.st{background:#f1f5f9;border-radius:6px;padding:10px;text-align:center}.st .n{font-size:22px;font-weight:900;color:#1B3A6B}.st .l{font-size:10px;color:#64748b;text-transform:uppercase;margin-top:2px}.br{display:flex;align-items:center;gap:6px;margin-bottom:4px}.brl{font-size:11px;color:#64748b;width:120px}.brt{flex:1;height:5px;background:#e2e8f0;border-radius:3px}.brf{height:100%;border-radius:3px}.brv{font-size:11px;font-weight:700;width:18px;text-align:right}table{width:100%;border-collapse:collapse;font-size:12px}td{padding:6px 9px;border-bottom:1px solid #f1f5f9}.ft{text-align:center;font-size:11px;color:#94a3b8;margin-top:16px;padding-top:11px;border-top:1px solid #e2e8f0}@media print{body{background:#fff;padding:0}@page{margin:18px}}</style></head><body>';
+  html+='<div class="hdr"><h1>🏟 UNION ROCHEFORTOISE</h1><p style="font-size:12px;opacity:.7;margin-top:3px">'+p.prenom+' '+p.nom+' · '+new Date().toLocaleDateString('fr-FR')+'</p></div>';
+  html+='<div class="sec"><h3>👤 Profil</h3><div class="g3"><div class="st"><div class="n" style="color:'+oC(o)+'">'+o+'</div><div class="l">OVR</div></div><div class="st"><div class="n" style="color:#16a34a">'+tA+'</div><div class="l">Tech</div></div><div class="st"><div class="n" style="color:#d97706">'+pA+'</div><div class="l">Phys</div></div></div><div class="g3"><div class="st"><div class="n" style="color:#7c3aed">'+tacA+'</div><div class="l">Tactique</div></div><div class="st"><div class="n" style="color:#b45309">'+mA+'</div><div class="l">Mental</div></div></div><table>'+[['Nom',p.prenom+' '+p.nom],['Âge',p.age?p.age+' ans':'—'],['Pied',p.pied||'—'],['Position',p.position?p.position.split('-').slice(1).join(' '):'—'],['Statut',p.statut||'—'],['Potentiel',p.potentiel||'—']].map(([k,v])=>'<tr><td style="color:#64748b;width:140px">'+k+'</td><td><strong>'+v+'</strong></td></tr>').join('')+'</table></div>';
+  if(matchs.length&&(plGoals.goals||plGoals.assists)){html+='<div class="sec"><h3>📊 Statistiques saison</h3><div class="g3"><div class="st"><div class="n" style="color:#dc2626">'+plGoals.goals+'</div><div class="l">Buts</div></div><div class="st"><div class="n">'+plGoals.assists+'</div><div class="l">Passes D.</div></div></div></div>';}
+  if(gps.vmax||gps.dist||gps.sprints){html+='<div class="sec"><h3>📡 Données GPS</h3><div class="g3">'+(gps.vmax?'<div class="st"><div class="n">'+gps.vmax+'</div><div class="l">km/h max</div></div>':'')+(gps.dist?'<div class="st"><div class="n">'+gps.dist+'</div><div class="l">km/match</div></div>':'')+(gps.sprints?'<div class="st"><div class="n">'+gps.sprints+'</div><div class="l">Sprints</div></div>':'')+'</div></div>';}
+  if(p.profil){html+='<div class="sec"><h3>🏷 '+p.profil+'</h3><p style="font-size:12px;margin-bottom:7px">'+(pfc?pfc.d:'')+'</p>'+(comps.length?'<div>'+comps.map(c2=>'<span style="background:#DBEAFE;color:#1D4ED8;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;display:inline-block">💎 '+c2+'</span>').join('')+'</div>':'')+'</div>';}
+  if(objs.length){html+='<div class="sec"><h3>🎯 Objectifs</h3>'+objs.map(ob=>{const ic=ob.status==='done'?'✓':ob.status==='failed'?'✕':'⏳';const ds=ob.dueDate?new Date(ob.dueDate).toLocaleDateString('fr-FR'):'—';return'<div style="padding:8px 11px;background:#f8fafc;border-radius:6px;margin-bottom:5px;border-left:3px solid '+(ob.status==='done'?'#16a34a':ob.status==='failed'?'#dc2626':'#2557a7')+'"><strong>'+ic+' '+ob.text+'</strong><div style="font-size:11px;color:#64748b">'+(ob.status==='ongoing'?'En cours':ob.status==='done'?'Atteint':'Non atteint')+' · '+ds+'</div></div>';}).join('')+'</div>';}
+  html+='<div class="sec"><h3>🎯 Techniques</h3>'+SKT.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
+  html+='<div class="sec"><h3>💪 Physiques</h3>'+SKP.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
+  html+='<div class="sec"><h3>🧠 Mentaux</h3>'+SKM.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
+  html+='<div class="sec" style="border-left:3px solid #7c3aed"><h3 style="color:#7c3aed">🧩 Tactique</h3>'+SKTac.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#7c3aed':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
+  if(p.forces||p.progres){html+='<div class="sec"><h3>📝 Notes</h3>'+(p.forces?'<p style="margin-bottom:7px"><strong style="color:#16a34a">Forces :</strong> '+p.forces+'</p>':'')+(p.progres?'<p><strong style="color:#d97706">Progression :</strong> '+p.progres+'</p>':'')+'</div>';}
+  html+='<div class="ft">Généré le '+new Date().toLocaleDateString('fr-FR')+' par '+(CU?CU.name:'?')+' · UR Scout DB v4</div>';
+  html+='</body></html>';
 
-html+=’<div class="hdr"><h1>🏟 UNION ROCHEFORTOISE</h1><p style="font-size:12px;opacity:.7;margin-top:3px">’+p.prenom+’ ‘+p.nom+’ · ‘+new Date().toLocaleDateString(‘fr-FR’)+’</p></div>’;
-html+=’<div class="sec"><h3>👤 Profil</h3><div class="g3"><div class="st"><div class="n" style="color:'+oC(o)+'">’+o+’</div><div class="l">OVR</div></div><div class="st"><div class="n" style="color:#16a34a">’+tA+’</div><div class="l">Tech</div></div><div class="st"><div class="n" style="color:#d97706">’+pA+’</div><div class="l">Phys</div></div></div><div class="g3"><div class="st"><div class="n" style="color:#7c3aed">’+tacA+’</div><div class="l">Tactique</div></div><div class="st"><div class="n" style="color:#b45309">’+mA+’</div><div class="l">Mental</div></div></div><table>’+[[‘Nom’,p.prenom+’ ‘+p.nom],[‘Âge’,p.age?p.age+’ ans’:’—’],[‘Pied’,p.pied||’—’],[‘Position’,p.position?p.position.split(’-’).slice(1).join(’ ‘):’—’],[‘Statut’,p.statut||’—’],[‘Potentiel’,p.potentiel||’—’]].map(([k,v])=>’<tr><td style="color:#64748b;width:140px">’+k+’</td><td><strong>’+v+’</strong></td></tr>’).join(’’)+’</table></div>’;
-if(matchs.length&&(plGoals.goals||plGoals.assists)){html+=’<div class="sec"><h3>📊 Statistiques saison</h3><div class="g3"><div class="st"><div class="n" style="color:#dc2626">’+plGoals.goals+’</div><div class="l">Buts</div></div><div class="st"><div class="n">’+plGoals.assists+’</div><div class="l">Passes D.</div></div></div></div>’;}
-if(gps.vmax||gps.dist||gps.sprints){html+=’<div class="sec"><h3>📡 Données GPS</h3><div class="g3">’+(gps.vmax?’<div class="st"><div class="n">’+gps.vmax+’</div><div class="l">km/h max</div></div>’:’’)+(gps.dist?’<div class="st"><div class="n">’+gps.dist+’</div><div class="l">km/match</div></div>’:’’)+(gps.sprints?’<div class="st"><div class="n">’+gps.sprints+’</div><div class="l">Sprints</div></div>’:’’)+’</div></div>’;}
-if(p.profil){html+=’<div class="sec"><h3>🏷 ‘+p.profil+’</h3><p style="font-size:12px;margin-bottom:7px">’+(pfc?pfc.d:’’)+’</p>’+(comps.length?’<div>’+comps.map(c2=>’<span style="background:#DBEAFE;color:#1D4ED8;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;display:inline-block">💎 ‘+c2+’</span>’).join(’’)+’</div>’:’’)+’</div>’;}
-if(objs.length){html+=’<div class="sec"><h3>🎯 Objectifs</h3>’+objs.map(ob=>{const ic=ob.status===‘done’?‘✓’:ob.status===‘failed’?‘✕’:‘⏳’;const ds=ob.dueDate?new Date(ob.dueDate).toLocaleDateString(‘fr-FR’):’—’;return’<div style="padding:8px 11px;background:#f8fafc;border-radius:6px;margin-bottom:5px;border-left:3px solid '+(ob.status==='done'?'#16a34a':ob.status==='failed'?'#dc2626':'#2557a7')+'"><strong>’+ic+’ ‘+ob.text+’</strong><div style="font-size:11px;color:#64748b">’+(ob.status===‘ongoing’?‘En cours’:ob.status===‘done’?‘Atteint’:‘Non atteint’)+’ · ‘+ds+’</div></div>’;}).join(’’)+’</div>’;}
-html+=’<div class="sec"><h3>🎯 Techniques</h3>’+SKT.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?’#16a34a’:v>=6?’#2563eb’:v>=4?’#d97706’:’#dc2626’;return’<div class="br"><div class="brl">’+s.lb+’</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">’+v+’</div></div>’;}).join(’’)+’</div>’;
-html+=’<div class="sec"><h3>💪 Physiques</h3>’+SKP.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?’#16a34a’:v>=6?’#2563eb’:v>=4?’#d97706’:’#dc2626’;return’<div class="br"><div class="brl">’+s.lb+’</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">’+v+’</div></div>’;}).join(’’)+’</div>’;
-html+=’<div class="sec"><h3>🧠 Mentaux</h3>’+SKM.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?’#16a34a’:v>=6?’#2563eb’:v>=4?’#d97706’:’#dc2626’;return’<div class="br"><div class="brl">’+s.lb+’</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">’+v+’</div></div>’;}).join(’’)+’</div>’;
-html+=’<div class="sec" style="border-left:3px solid #7c3aed"><h3 style="color:#7c3aed">🧩 Tactique</h3>’+SKTac.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?’#16a34a’:v>=6?’#7c3aed’:v>=4?’#d97706’:’#dc2626’;return’<div class="br"><div class="brl">’+s.lb+’</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">’+v+’</div></div>’;}).join(’’)+’</div>’;
-if(p.forces||p.progres){html+=’<div class="sec"><h3>📝 Notes</h3>’+(p.forces?’<p style="margin-bottom:7px"><strong style="color:#16a34a">Forces :</strong> ‘+p.forces+’</p>’:’’)+(p.progres?’<p><strong style="color:#d97706">Progression :</strong> ‘+p.progres+’</p>’:’’)+’</div>’;}
-html+=’<div class="ft">Généré le ‘+new Date().toLocaleDateString(‘fr-FR’)+’ par ‘+(CU?CU.name:’?’)+’ · UR Scout DB v4</div>’;
-html+=’</body></html>’;
-
-// Method 1: Print via hidden iframe (works on iOS Safari, Android, desktop — uses current page permissions)
-printViaIframe(html,p.prenom+’_’+p.nom);
+  // Method 1: Print via hidden iframe (works on iOS Safari, Android, desktop — uses current page permissions)
+  printViaIframe(html,p.prenom+'_'+p.nom);
 }
 
 function printViaIframe(htmlContent,filename){
-// Remove any existing print iframe
-const old=document.getElementById(‘print-iframe’);if(old)old.remove();
-// Create hidden iframe
-const iframe=document.createElement(‘iframe’);
-iframe.id=‘print-iframe’;
-iframe.style.cssText=‘position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0’;
-document.body.appendChild(iframe);
-const doc=iframe.contentDocument||iframe.contentWindow.document;
-doc.open();doc.write(htmlContent);doc.close();
-// Wait for iframe to load, then trigger print
-setTimeout(()=>{
-try{
-iframe.contentWindow.focus();
-iframe.contentWindow.print();
-toast(‘🖨️ Fenêtre d'impression ouverte’);
-// Cleanup after a delay
-setTimeout(()=>{const el=document.getElementById(‘print-iframe’);if(el)el.remove();},3000);
-}catch(e){
-// Final fallback: download HTML file
-iframe.remove();
-try{
-const blob=new Blob([htmlContent],{type:‘text/html;charset=utf-8’});
-const url=URL.createObjectURL(blob);
-const a=document.createElement(‘a’);
-a.href=url;a.download=‘UR_’+filename+’_’+new Date().toISOString().slice(0,10)+’.html’;
-document.body.appendChild(a);a.click();
-setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
-toast(‘📄 Téléchargé. Ouvrez le fichier puis menu Partager → Imprimer’);
-}catch(err){toast(’⚠ Erreur : ’+err.message);}
-}
-},500);
+  // Remove any existing print iframe
+  const old=document.getElementById('print-iframe');if(old)old.remove();
+  // Create hidden iframe
+  const iframe=document.createElement('iframe');
+  iframe.id='print-iframe';
+  iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0';
+  document.body.appendChild(iframe);
+  const doc=iframe.contentDocument||iframe.contentWindow.document;
+  doc.open();doc.write(htmlContent);doc.close();
+  // Wait for iframe to load, then trigger print
+  setTimeout(()=>{
+    try{
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      toast('🖨️ Fenêtre d\'impression ouverte');
+      // Cleanup after a delay
+      setTimeout(()=>{const el=document.getElementById('print-iframe');if(el)el.remove();},3000);
+    }catch(e){
+      // Final fallback: download HTML file
+      iframe.remove();
+      try{
+        const blob=new Blob([htmlContent],{type:'text/html;charset=utf-8'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url;a.download='UR_'+filename+'_'+new Date().toISOString().slice(0,10)+'.html';
+        document.body.appendChild(a);a.click();
+        setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+        toast('📄 Téléchargé. Ouvrez le fichier puis menu Partager → Imprimer');
+      }catch(err){toast('⚠ Erreur : '+err.message);}
+    }
+  },500);
 }
 
 // ═══════ ADMIN ═══════
 function renderAdmin(){
-const pend=requests.filter(r=>r.status===‘pending’),cnt=pend.length;
-document.getElementById(‘reqcnt’).textContent=cnt?’(’+cnt+’)’:’’;
-document.getElementById(‘ndot’).classList.toggle(‘show’,cnt>0);
-const rqEl=document.getElementById(‘reqlist’);
-if(!pend.length){rqEl.innerHTML=’<div style="color:#718096;font-size:13px;padding:6px 0">✅ Aucune demande.</div>’;}
-else{rqEl.innerHTML=pend.map(r=>{const t=new Date(r.ts).toLocaleString(‘fr-FR’,{day:‘2-digit’,month:‘2-digit’,hour:‘2-digit’,minute:‘2-digit’});return’<div class="reqcard"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div class="staffav">’+(r.name[0]||’?’)+’</div><div style="flex:1"><div style="font-weight:700;font-size:13px">’+r.name+’</div><div style="font-size:11px;color:#718096">’+r.role+’ · <span style="font-family:monospace;color:#f6c90e">’+r.u+’</span></div></div><div style="font-size:11px;color:#718096">’+t+’</div></div>’+(r.msg?’<div style="font-size:12px;color:#718096;font-style:italic;border-left:3px solid #2d4a7a;padding:6px 9px;margin-bottom:8px">”’+r.msg+’”</div>’:’’)+’<div style="font-size:11px;color:#718096;margin-bottom:6px">Mot de passe :</div><div style="display:flex;gap:7px;margin-bottom:8px"><input type="text" class="fi" id="rp-'+r.id+'" placeholder="Mot de passe" style="flex:1;font-size:14px"><button class="btn btn-o btn-sm" onclick="gpf(\'rp-'+r.id+'\')">🎲</button></div><div style="display:flex;gap:6px"><button class="btn btn-d btn-sm" onclick="rejReq(\''+r.id+'\')">✕ Refuser</button><button class="btn btn-g" style="flex:1" onclick="appReq(\''+r.id+'\')">✅ Approuver</button></div></div>’;}).join(’’);}
-const stEl=document.getElementById(‘stafflist’);
-stEl.innerHTML=[ROOT,…staffList.filter(s=>s.id!==ROOT.id)].map(s=>’<div class="staffit"><div class="staffav">’+(s.name[0]||’?’)+’</div><div style="flex:1"><div style="font-weight:700;font-size:13px">’+s.name+(s.isAdmin?’ <span class="bd" style="background:rgba(246,201,14,.15);color:#f6c90e;border:1px solid rgba(246,201,14,.3);font-size:8px">ADMIN</span>’:’’)+’</div><div style="font-size:11px;color:#718096">’+s.role+’ · <span style="font-family:monospace;color:#63b3ed">’+s.u+’</span></div></div><div style="display:flex;gap:5px">’+(!s.permanent?’<button class="btn btn-o btn-sm" onclick="edStaff(\''+s.id+'\')">✏️</button><button class="btn btn-d btn-sm" onclick="delStaff(\''+s.id+'\')">🗑</button>’:’<span style="font-size:10px;color:#4a6080">Principal</span>’)+’</div></div>’).join(’’);
+  const pend=requests.filter(r=>r.status==='pending'),cnt=pend.length;
+  document.getElementById('reqcnt').textContent=cnt?'('+cnt+')':'';
+  document.getElementById('ndot').classList.toggle('show',cnt>0);
+  const rqEl=document.getElementById('reqlist');
+  if(!pend.length){rqEl.innerHTML='<div style="color:#718096;font-size:13px;padding:6px 0">✅ Aucune demande.</div>';}
+  else{rqEl.innerHTML=pend.map(r=>{const t=new Date(r.ts).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});return'<div class="reqcard"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div class="staffav">'+(r.name[0]||'?')+'</div><div style="flex:1"><div style="font-weight:700;font-size:13px">'+r.name+'</div><div style="font-size:11px;color:#718096">'+r.role+' · <span style="font-family:monospace;color:#f6c90e">'+r.u+'</span></div></div><div style="font-size:11px;color:#718096">'+t+'</div></div>'+(r.msg?'<div style="font-size:12px;color:#718096;font-style:italic;border-left:3px solid #2d4a7a;padding:6px 9px;margin-bottom:8px">"'+r.msg+'"</div>':'')+'<div style="font-size:11px;color:#718096;margin-bottom:6px">Mot de passe :</div><div style="display:flex;gap:7px;margin-bottom:8px"><input type="text" class="fi" id="rp-'+r.id+'" placeholder="Mot de passe" style="flex:1;font-size:14px"><button class="btn btn-o btn-sm" onclick="gpf(\'rp-'+r.id+'\')">🎲</button></div><div style="display:flex;gap:6px"><button class="btn btn-d btn-sm" onclick="rejReq(\''+r.id+'\')">✕ Refuser</button><button class="btn btn-g" style="flex:1" onclick="appReq(\''+r.id+'\')">✅ Approuver</button></div></div>';}).join('');}
+  const stEl=document.getElementById('stafflist');
+  stEl.innerHTML=[ROOT,...staffList.filter(s=>s.id!==ROOT.id)].map(s=>'<div class="staffit"><div class="staffav">'+(s.name[0]||'?')+'</div><div style="flex:1"><div style="font-weight:700;font-size:13px">'+s.name+(s.isAdmin?' <span class="bd" style="background:rgba(246,201,14,.15);color:#f6c90e;border:1px solid rgba(246,201,14,.3);font-size:8px">ADMIN</span>':'')+'</div><div style="font-size:11px;color:#718096">'+s.role+' · <span style="font-family:monospace;color:#63b3ed">'+s.u+'</span></div></div><div style="display:flex;gap:5px">'+(!s.permanent?'<button class="btn btn-o btn-sm" onclick="edStaff(\''+s.id+'\')">✏️</button><button class="btn btn-d btn-sm" onclick="delStaff(\''+s.id+'\')">🗑</button>':'<span style="font-size:10px;color:#4a6080">Principal</span>')+'</div></div>').join('');
 }
-async function appReq(rid){const req=requests.find(r=>r.id===rid);if(!req)return;const pass=document.getElementById(‘rp-’+rid)?document.getElementById(‘rp-’+rid).value.trim():’’;if(!pass){toast(‘⚠ Définissez un mot de passe’);return;}staffList.push({id:‘s_’+Date.now(),u:req.u,p:pass,name:req.name,role:req.role,isAdmin:false,createdAt:new Date().toISOString()});req.status=‘approved’;addAct(‘a approuvé’,req.name);const ok=await pushCl();renderAdmin();toast(ok?‘✅ Compte créé pour ‘+req.name:‘✅ Local’);}
-async function rejReq(rid){if(!confirm(‘Refuser ?’))return;const req=requests.find(r=>r.id===rid);if(req){req.status=‘rejected’;addAct(‘a refusé’,req.name);}await pushCl();renderAdmin();toast(‘Refusé’);}
-function resetStaff(){document.getElementById(‘astit’).textContent=‘Créer un compte’;document.getElementById(‘assb’).textContent=‘✅ Créer’;document.getElementById(‘asei’).value=’’;[‘asname’,‘asu’,‘asp’].forEach(id=>document.getElementById(id).value=’’);document.getElementById(‘asrole’).value=’’;document.getElementById(‘asadm’).value=‘false’;}
-function genP(){const c=‘ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#’;let p=’’;for(let i=0;i<10;i++)p+=c[Math.floor(Math.random()*c.length)];document.getElementById(‘asp’).value=p;}
-function gpf(id){const c=‘ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#’;let p=’’;for(let i=0;i<10;i++)p+=c[Math.floor(Math.random()*c.length)];document.getElementById(id).value=p;}
-async function saveStaff(){const n=document.getElementById(‘asname’).value.trim(),r=document.getElementById(‘asrole’).value,u=document.getElementById(‘asu’).value.trim().toLowerCase().replace(/\s/g,’’),p=document.getElementById(‘asp’).value.trim(),ia=document.getElementById(‘asadm’).value===‘true’,eid=document.getElementById(‘asei’).value;if(!n||!r||!u||!p){toast(‘⚠ Tous les champs obligatoires’);return;}if(!eid&&getStaff().find(x=>x.u===u)){toast(‘⚠ Identifiant déjà utilisé’);return;}if(eid){const i=staffList.findIndex(x=>x.id===eid);if(i>=0)staffList[i]={…staffList[i],name:n,role:r,u,p,isAdmin:ia};}else staffList.push({id:‘s_’+Date.now(),u,p,name:n,role:r,isAdmin:ia,createdAt:new Date().toISOString()});addAct(eid?‘a modifié’:‘a créé un compte pour’,n);const ok=await pushCl();closeMod(‘m-as’);renderAdmin();toast(ok?‘✅ Compte ‘+(eid?‘modifié’:‘créé’):‘✅ Local’);}
-function edStaff(id){const s=staffList.find(x=>x.id===id);if(!s)return;document.getElementById(‘astit’).textContent=‘Modifier’;document.getElementById(‘assb’).textContent=‘💾 Enregistrer’;document.getElementById(‘asei’).value=id;document.getElementById(‘asname’).value=s.name;document.getElementById(‘asrole’).value=s.role;document.getElementById(‘asu’).value=s.u;document.getElementById(‘asp’).value=s.p;document.getElementById(‘asadm’).value=s.isAdmin?‘true’:‘false’;openMod(‘m-as’);}
-async function delStaff(id){const s=staffList.find(x=>x.id===id);if(!confirm(‘Supprimer ‘+(s?s.name:’’)+’ ?’))return;staffList=staffList.filter(x=>x.id!==id);addAct(‘a supprimé’,s?s.name:’’);await pushCl();renderAdmin();toast(‘Supprimé’);}
+async function appReq(rid){const req=requests.find(r=>r.id===rid);if(!req)return;const pass=document.getElementById('rp-'+rid)?document.getElementById('rp-'+rid).value.trim():'';if(!pass){toast('⚠ Définissez un mot de passe');return;}staffList.push({id:'s_'+Date.now(),u:req.u,p:pass,name:req.name,role:req.role,isAdmin:false,createdAt:new Date().toISOString()});req.status='approved';addAct('a approuvé',req.name);const ok=await pushCl();renderAdmin();toast(ok?'✅ Compte créé pour '+req.name:'✅ Local');}
+async function rejReq(rid){if(!confirm('Refuser ?'))return;const req=requests.find(r=>r.id===rid);if(req){req.status='rejected';addAct('a refusé',req.name);}await pushCl();renderAdmin();toast('Refusé');}
+function resetStaff(){document.getElementById('astit').textContent='Créer un compte';document.getElementById('assb').textContent='✅ Créer';document.getElementById('asei').value='';['asname','asu','asp'].forEach(id=>document.getElementById(id).value='');document.getElementById('asrole').value='';document.getElementById('asadm').value='false';}
+function genP(){const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';let p='';for(let i=0;i<10;i++)p+=c[Math.floor(Math.random()*c.length)];document.getElementById('asp').value=p;}
+function gpf(id){const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';let p='';for(let i=0;i<10;i++)p+=c[Math.floor(Math.random()*c.length)];document.getElementById(id).value=p;}
+async function saveStaff(){const n=document.getElementById('asname').value.trim(),r=document.getElementById('asrole').value,u=document.getElementById('asu').value.trim().toLowerCase().replace(/\s/g,''),p=document.getElementById('asp').value.trim(),ia=document.getElementById('asadm').value==='true',eid=document.getElementById('asei').value;if(!n||!r||!u||!p){toast('⚠ Tous les champs obligatoires');return;}if(!eid&&getStaff().find(x=>x.u===u)){toast('⚠ Identifiant déjà utilisé');return;}if(eid){const i=staffList.findIndex(x=>x.id===eid);if(i>=0)staffList[i]={...staffList[i],name:n,role:r,u,p,isAdmin:ia};}else staffList.push({id:'s_'+Date.now(),u,p,name:n,role:r,isAdmin:ia,createdAt:new Date().toISOString()});addAct(eid?'a modifié':'a créé un compte pour',n);const ok=await pushCl();closeMod('m-as');renderAdmin();toast(ok?'✅ Compte '+(eid?'modifié':'créé'):'✅ Local');}
+function edStaff(id){const s=staffList.find(x=>x.id===id);if(!s)return;document.getElementById('astit').textContent='Modifier';document.getElementById('assb').textContent='💾 Enregistrer';document.getElementById('asei').value=id;document.getElementById('asname').value=s.name;document.getElementById('asrole').value=s.role;document.getElementById('asu').value=s.u;document.getElementById('asp').value=s.p;document.getElementById('asadm').value=s.isAdmin?'true':'false';openMod('m-as');}
+async function delStaff(id){const s=staffList.find(x=>x.id===id);if(!confirm('Supprimer '+(s?s.name:'')+' ?'))return;staffList=staffList.filter(x=>x.id!==id);addAct('a supprimé',s?s.name:'');await pushCl();renderAdmin();toast('Supprimé');}
 
 // ═══════ EXPORT / IMPORT ═══════
-function exportJSON(){const b=new Blob([JSON.stringify({players,evaluations:evals,activity:acts,staff:staffList,matchs,recrues,date:new Date().toISOString()},null,2)],{type:‘application/json’});const a=document.createElement(‘a’);a.href=URL.createObjectURL(b);a.download=‘UR_ScoutDB_v2_’+new Date().toISOString().slice(0,10)+’.json’;a.click();toast(‘⬇ Export téléchargé’);}
-function doImport(inp){const f=inp.files[0];if(!f)return;const reader=new FileReader();reader.onload=async function(e){try{const d=JSON.parse(e.target.result);if(d.players)players=d.players;if(d.evaluations)evals=d.evaluations;if(d.activity)acts=d.activity;if(d.staff)staffList=d.staff;if(d.matchs)matchs=d.matchs;if(d.recrues)recrues=d.recrues;const ok=await pushCl();renderDash();renderPl();initSel();toast(ok?‘✓ Import sync’:‘✓ Import local’);}catch(x){toast(‘❌ Fichier invalide’);}};reader.readAsText(f);inp.value=’’;}
+function exportJSON(){const b=new Blob([JSON.stringify({players,evaluations:evals,activity:acts,staff:staffList,matchs,recrues,date:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='UR_ScoutDB_v2_'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('⬇ Export téléchargé');}
+function doImport(inp){const f=inp.files[0];if(!f)return;const reader=new FileReader();reader.onload=async function(e){try{const d=JSON.parse(e.target.result);if(d.players)players=d.players;if(d.evaluations)evals=d.evaluations;if(d.activity)acts=d.activity;if(d.staff)staffList=d.staff;if(d.matchs)matchs=d.matchs;if(d.recrues)recrues=d.recrues;const ok=await pushCl();renderDash();renderPl();initSel();toast(ok?'✓ Import sync':'✓ Import local');}catch(x){toast('❌ Fichier invalide');}};reader.readAsText(f);inp.value='';}
 
 // ═══════ UTILS ═══════
-function addAct(action,player){acts.unshift({who:CU?CU.name:’?’,action,player,time:new Date().toISOString()});if(acts.length>40)acts.pop();}
-function toast(m){const t=document.getElementById(‘toast’);t.textContent=m;t.classList.add(‘show’);setTimeout(()=>t.classList.remove(‘show’),3200);}
+function addAct(action,player){acts.unshift({who:CU?CU.name:'?',action,player,time:new Date().toISOString()});if(acts.length>40)acts.pop();}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
 
 // ═══════ COMMANDE VOCALE ═══════
-let voiceRec=null,voiceTarget=null,voiceMode=‘text’;
+let voiceRec=null,voiceTarget=null,voiceMode='text';
 function initVoice(){
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR){return null;}
-const r=new SR();r.lang=‘fr-FR’;r.interimResults=false;r.continuous=false;r.maxAlternatives=1;
-r.onresult=(e)=>{
-const txt=e.results[0][0].transcript.trim();
-applyVoiceResult(txt);
-};
-r.onerror=(e)=>{stopVoice();toast(‘⚠ Erreur micro: ‘+(e.error||’?’));};
-r.onend=()=>{const btn=voiceTarget?document.querySelector(’[data-voice-for=”’+voiceTarget+’”]’):null;if(btn)btn.classList.remove(‘listening’);voiceRec=null;};
-return r;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){return null;}
+  const r=new SR();r.lang='fr-FR';r.interimResults=false;r.continuous=false;r.maxAlternatives=1;
+  r.onresult=(e)=>{
+    const txt=e.results[0][0].transcript.trim();
+    applyVoiceResult(txt);
+  };
+  r.onerror=(e)=>{stopVoice();toast('⚠ Erreur micro: '+(e.error||'?'));};
+  r.onend=()=>{const btn=voiceTarget?document.querySelector('[data-voice-for="'+voiceTarget+'"]'):null;if(btn)btn.classList.remove('listening');voiceRec=null;};
+  return r;
 }
 function startVoice(targetId,mode){
-if(!(‘SpeechRecognition’ in window)&&!(‘webkitSpeechRecognition’ in window)){toast(‘⚠ Reconnaissance vocale non supportée. Utilisez Chrome, Edge ou Safari.’);return;}
-if(!window.isSecureContext){toast(‘⚠ Le micro nécessite HTTPS. Utilisez le lien GitHub Pages.’);return;}
-if(voiceRec){voiceRec.stop();return;}
-voiceTarget=targetId;voiceMode=mode||‘text’;
-// Demande explicite de permission micro
-if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-stream.getTracks().forEach(t=>t.stop()); // close stream, just need permission
-_launchRec(targetId);
-}).catch(err=>{
-if(err.name===‘NotAllowedError’)toast(‘⚠ Autorisez le micro dans les paramètres du navigateur’);
-else if(err.name===‘NotFoundError’)toast(‘⚠ Aucun micro détecté’);
-else toast(‘⚠ Erreur micro : ‘+err.name);
-});
-}else{
-_launchRec(targetId);
-}
+  if(!('SpeechRecognition' in window)&&!('webkitSpeechRecognition' in window)){toast('⚠ Reconnaissance vocale non supportée. Utilisez Chrome, Edge ou Safari.');return;}
+  if(!window.isSecureContext){toast('⚠ Le micro nécessite HTTPS. Utilisez le lien GitHub Pages.');return;}
+  if(voiceRec){voiceRec.stop();return;}
+  voiceTarget=targetId;voiceMode=mode||'text';
+  // Demande explicite de permission micro
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+      stream.getTracks().forEach(t=>t.stop()); // close stream, just need permission
+      _launchRec(targetId);
+    }).catch(err=>{
+      if(err.name==='NotAllowedError')toast('⚠ Autorisez le micro dans les paramètres du navigateur');
+      else if(err.name==='NotFoundError')toast('⚠ Aucun micro détecté');
+      else toast('⚠ Erreur micro : '+err.name);
+    });
+  }else{
+    _launchRec(targetId);
+  }
 }
 function _launchRec(targetId){
-voiceRec=initVoice();if(!voiceRec)return;
-const btn=document.querySelector(’[data-voice-for=”’+targetId+’”]’);
-if(btn)btn.classList.add(‘listening’);
-try{voiceRec.start();toast(‘🎤 Parlez maintenant…’);}catch(x){toast(‘⚠ Démarrage micro impossible’);stopVoice();}
+  voiceRec=initVoice();if(!voiceRec)return;
+  const btn=document.querySelector('[data-voice-for="'+targetId+'"]');
+  if(btn)btn.classList.add('listening');
+  try{voiceRec.start();toast('🎤 Parlez maintenant...');}catch(x){toast('⚠ Démarrage micro impossible');stopVoice();}
 }
-function stopVoice(){if(voiceRec){try{voiceRec.stop();}catch(x){}voiceRec=null;}document.querySelectorAll(’.voice-btn’).forEach(b=>b.classList.remove(‘listening’));}
+function stopVoice(){if(voiceRec){try{voiceRec.stop();}catch(x){}voiceRec=null;}document.querySelectorAll('.voice-btn').forEach(b=>b.classList.remove('listening'));}
 function applyVoiceResult(txt){
-const target=voiceTarget;if(!target)return;
-const el=document.getElementById(target);if(!el)return;
-let val=txt;
-// Cleanup based on mode
-if(voiceMode===‘number’){
-val=txt.replace(/[^0-9.,]/g,’’).replace(’,’,’.’);
-const n=parseFloat(val);if(isNaN(n))val=’’;else val=String(n);
-}else if(voiceMode===‘date’){
-// Try to parse “12 mars 1995” or “12/03/1995”
-const months={‘janvier’:‘01’,‘février’:‘02’,‘mars’:‘03’,‘avril’:‘04’,‘mai’:‘05’,‘juin’:‘06’,‘juillet’:‘07’,‘août’:‘08’,‘septembre’:‘09’,‘octobre’:‘10’,‘novembre’:‘11’,‘décembre’:‘12’};
-let m=txt.toLowerCase().match(/(\d{1,2})\s+(\w+)\s+(\d{2,4})/);
-if(m&&months[m[2]]){const d=m[1].padStart(2,‘0’);const mo=months[m[2]];let y=m[3];if(y.length===2)y=‘19’+y;val=y+’-’+mo+’-’+d;}
-else{m=txt.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/);if(m){let y=m[3];if(y.length===2)y=‘19’+y;val=y+’-’+m[2].padStart(2,‘0’)+’-’+m[1].padStart(2,‘0’);}else val=’’;}
-}else if(voiceMode===‘name’){
-// Capitalize first letter of each word
-val=txt.replace(/\b\w/g,c=>c.toUpperCase()).trim();
+  const target=voiceTarget;if(!target)return;
+  const el=document.getElementById(target);if(!el)return;
+  let val=txt;
+  // Cleanup based on mode
+  if(voiceMode==='number'){
+    val=txt.replace(/[^0-9.,]/g,'').replace(',','.');
+    const n=parseFloat(val);if(isNaN(n))val='';else val=String(n);
+  }else if(voiceMode==='date'){
+    // Try to parse "12 mars 1995" or "12/03/1995"
+    const months={'janvier':'01','février':'02','mars':'03','avril':'04','mai':'05','juin':'06','juillet':'07','août':'08','septembre':'09','octobre':'10','novembre':'11','décembre':'12'};
+    let m=txt.toLowerCase().match(/(\d{1,2})\s+(\w+)\s+(\d{2,4})/);
+    if(m&&months[m[2]]){const d=m[1].padStart(2,'0');const mo=months[m[2]];let y=m[3];if(y.length===2)y='19'+y;val=y+'-'+mo+'-'+d;}
+    else{m=txt.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);if(m){let y=m[3];if(y.length===2)y='19'+y;val=y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');}else val='';}
+  }else if(voiceMode==='name'){
+    // Capitalize first letter of each word
+    val=txt.replace(/\b\w/g,c=>c.toUpperCase()).trim();
+  }
+  if(val!==''){
+    el.value=val;
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+    toast('✓ Saisi : '+val.substring(0,40));
+  }else{
+    toast('⚠ Non compris : "'+txt.substring(0,30)+'"');
+  }
+  stopVoice();
 }
-if(val!==’’){
-el.value=val;
-el.dispatchEvent(new Event(‘input’,{bubbles:true}));
-el.dispatchEvent(new Event(‘change’,{bubbles:true}));
-toast(‘✓ Saisi : ‘+val.substring(0,40));
-}else{
-toast(‘⚠ Non compris : “’+txt.substring(0,30)+’”’);
-}
-stopVoice();
-}
-function vBtn(targetId,mode){return ‘<button type="button" class="voice-btn" data-voice-for="'+targetId+'\" onclick="startVoice(\''+targetId+'\',\''+(mode||'text')+'\')" title="Saisie vocale">🎤</button>’;}
+function vBtn(targetId,mode){return '<button type="button" class="voice-btn" data-voice-for="'+targetId+'\" onclick="startVoice(\''+targetId+'\',\''+(mode||'text')+'\')" title="Saisie vocale">🎤</button>';}
 
 // ═══════ BOOT ═══════
 (function(){
-if(checkSess()){const c=localStorage.getItem(KC);if(c)CFG=JSON.parse(c);launch();}
+  if(checkSess()){const c=localStorage.getItem(KC);if(c)CFG=JSON.parse(c);launch();}
 }());
 </script>
-
 </body>
 </html>
