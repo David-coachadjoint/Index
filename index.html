@@ -246,7 +246,44 @@ tr:hover td{background:rgba(99,179,237,.05);cursor:pointer}
 .fi-voice-wrap{display:flex;gap:6px;align-items:stretch}
 .fi-voice-wrap .fi{flex:1}
 
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1a2d4e;border:1px solid #63b3ed;color:#e2e8f0;padding:9px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:all .3s}
+/* PDF INLINE VIEW — affiche le rapport par-dessus l'app et permet l'impression native */
+#pdf-overlay{position:fixed;inset:0;background:#f8f9fa;color:#333;z-index:9999;overflow-y:auto;font-family:Arial,sans-serif}
+.pdf-toolbar{position:sticky;top:0;background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);z-index:10}
+.pdf-btn-print{padding:10px 16px;background:#1B3A6B;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial}
+.pdf-btn-close{padding:10px 14px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial}
+.pdf-content{max-width:800px;margin:0 auto;padding:20px;background:#f8f9fa}
+.pdf-hdr{background:linear-gradient(135deg,#0A1628,#1B3A6B);color:#fff;padding:22px;border-radius:10px;margin-bottom:16px}
+.pdf-hdr h1{font-size:20px;margin:0}
+.pdf-hdr p{font-size:12px;opacity:.7;margin-top:3px;margin-bottom:0}
+.pdf-sec{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:14px;margin-bottom:11px}
+.pdf-sec h3{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#2557a7;margin:0 0 9px 0;padding-bottom:6px;border-bottom:1px solid #e2e8f0}
+.pdf-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.pdf-st{background:#f1f5f9;border-radius:6px;padding:10px;text-align:center}
+.pdf-n{font-size:22px;font-weight:900;color:#1B3A6B}
+.pdf-l{font-size:10px;color:#64748b;text-transform:uppercase;margin-top:2px}
+.pdf-br{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.pdf-brl{font-size:11px;color:#64748b;width:120px;flex-shrink:0}
+.pdf-brt{flex:1;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.pdf-brf{height:100%;border-radius:3px}
+.pdf-brv{font-size:11px;font-weight:700;width:18px;text-align:right;color:#333}
+.pdf-t{width:100%;border-collapse:collapse;font-size:12px}
+.pdf-t td{padding:6px 9px;border-bottom:1px solid #f1f5f9;color:#333}
+.pdf-chip{background:#DBEAFE;color:#1D4ED8;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;display:inline-block}
+.pdf-ft{text-align:center;font-size:11px;color:#94a3b8;margin-top:16px;padding-top:11px;border-top:1px solid #e2e8f0}
+/* En mode PDF, on cache l'app derrière */
+body.pdf-mode>:not(#pdf-overlay):not(#toast){display:none !important}
+/* Print rules — pendant l'impression on cache TOUT sauf le rapport PDF */
+@media print{
+  body{background:#fff !important;padding:0 !important;margin:0 !important}
+  body>:not(#pdf-overlay){display:none !important}
+  #pdf-overlay{position:static;background:#fff !important;overflow:visible !important;height:auto !important}
+  .no-print,.pdf-toolbar{display:none !important}
+  .pdf-content{padding:0 !important;max-width:100% !important;background:#fff !important}
+  .pdf-sec{break-inside:avoid;page-break-inside:avoid}
+  @page{margin:15mm}
+}
+
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1a2d4e;border:1px solid #63b3ed;color:#e2e8f0;padding:9px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:99999;opacity:0;transition:all .3s}
 #toast.show{opacity:1}
 .empty{text-align:center;padding:36px 18px;color:#718096}
 .empty h3{font-size:17px;color:#e2e8f0;margin-bottom:5px}
@@ -1950,59 +1987,44 @@ async function saveEval(){const pid=document.getElementById('evpl').value,mo=doc
 // ═══════ PDF ═══════
 function expPDF(id){
   const p=players.find(x=>x.id===id);if(!p)return;
-  const o=ovr(p),tA=cAvg(p,SKT),pA=cAvg(p,SKP),mA=cAvg(p,SKM),pfc=p.profil?PF[p.profil]:null,comps=p.profilComps?p.profilComps.split(',').filter(Boolean):[],objs=p.objectifs||[],gps=p.gps||{};
+  const o=ovr(p),tA=cAvg(p,SKT),pA=cAvg(p,SKP),mA=cAvg(p,SKM),tacA=cAvg(p,SKTac),pfc=p.profil?PF[p.profil]:null,comps=p.profilComps?p.profilComps.split(',').filter(Boolean):[],objs=p.objectifs||[],gps=p.gps||{};
   const plGoals=matchs.reduce((acc,m)=>{(m.goals||[]).forEach(g=>{if(g.pid===id&&g.team==='UR')acc.goals++;if(g.assist===id)acc.assists++;});return acc;},{goals:0,assists:0});
-  let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+p.prenom+' '+p.nom+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial;background:#f8f9fa;color:#333;padding:25px;max-width:800px;margin:0 auto;font-size:13px}.hdr{background:linear-gradient(135deg,#0A1628,#1B3A6B);color:#fff;padding:22px;border-radius:10px;margin-bottom:16px}.sec{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:14px;margin-bottom:11px}.sec h3{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#2557a7;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}.st{background:#f1f5f9;border-radius:6px;padding:10px;text-align:center}.st .n{font-size:22px;font-weight:900;color:#1B3A6B}.st .l{font-size:10px;color:#64748b;text-transform:uppercase;margin-top:2px}.br{display:flex;align-items:center;gap:6px;margin-bottom:4px}.brl{font-size:11px;color:#64748b;width:120px}.brt{flex:1;height:5px;background:#e2e8f0;border-radius:3px}.brf{height:100%;border-radius:3px}.brv{font-size:11px;font-weight:700;width:18px;text-align:right}table{width:100%;border-collapse:collapse;font-size:12px}td{padding:6px 9px;border-bottom:1px solid #f1f5f9}.ft{text-align:center;font-size:11px;color:#94a3b8;margin-top:16px;padding-top:11px;border-top:1px solid #e2e8f0}@media print{body{background:#fff;padding:0}@page{margin:18px}}</style></head><body>';
-  html+='<div class="hdr"><h1>🏟 UNION ROCHEFORTOISE</h1><p style="font-size:12px;opacity:.7;margin-top:3px">'+p.prenom+' '+p.nom+' · '+new Date().toLocaleDateString('fr-FR')+'</p></div>';
-  html+='<div class="sec"><h3>👤 Profil</h3><div class="g3"><div class="st"><div class="n" style="color:'+oC(o)+'">'+o+'</div><div class="l">OVR</div></div><div class="st"><div class="n" style="color:#16a34a">'+tA+'</div><div class="l">Tech</div></div><div class="st"><div class="n" style="color:#d97706">'+pA+'</div><div class="l">Phys</div></div></div><div class="g3"><div class="st"><div class="n" style="color:#7c3aed">'+tacA+'</div><div class="l">Tactique</div></div><div class="st"><div class="n" style="color:#b45309">'+mA+'</div><div class="l">Mental</div></div></div><table>'+[['Nom',p.prenom+' '+p.nom],['Âge',p.age?p.age+' ans':'—'],['Pied',p.pied||'—'],['Position',p.position?p.position.split('-').slice(1).join(' '):'—'],['Statut',p.statut||'—'],['Potentiel',p.potentiel||'—']].map(([k,v])=>'<tr><td style="color:#64748b;width:140px">'+k+'</td><td><strong>'+v+'</strong></td></tr>').join('')+'</table></div>';
-  if(matchs.length&&(plGoals.goals||plGoals.assists)){html+='<div class="sec"><h3>📊 Statistiques saison</h3><div class="g3"><div class="st"><div class="n" style="color:#dc2626">'+plGoals.goals+'</div><div class="l">Buts</div></div><div class="st"><div class="n">'+plGoals.assists+'</div><div class="l">Passes D.</div></div></div></div>';}
-  if(gps.vmax||gps.dist||gps.sprints){html+='<div class="sec"><h3>📡 Données GPS</h3><div class="g3">'+(gps.vmax?'<div class="st"><div class="n">'+gps.vmax+'</div><div class="l">km/h max</div></div>':'')+(gps.dist?'<div class="st"><div class="n">'+gps.dist+'</div><div class="l">km/match</div></div>':'')+(gps.sprints?'<div class="st"><div class="n">'+gps.sprints+'</div><div class="l">Sprints</div></div>':'')+'</div></div>';}
-  if(p.profil){html+='<div class="sec"><h3>🏷 '+p.profil+'</h3><p style="font-size:12px;margin-bottom:7px">'+(pfc?pfc.d:'')+'</p>'+(comps.length?'<div>'+comps.map(c2=>'<span style="background:#DBEAFE;color:#1D4ED8;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;display:inline-block">💎 '+c2+'</span>').join('')+'</div>':'')+'</div>';}
-  if(objs.length){html+='<div class="sec"><h3>🎯 Objectifs</h3>'+objs.map(ob=>{const ic=ob.status==='done'?'✓':ob.status==='failed'?'✕':'⏳';const ds=ob.dueDate?new Date(ob.dueDate).toLocaleDateString('fr-FR'):'—';return'<div style="padding:8px 11px;background:#f8fafc;border-radius:6px;margin-bottom:5px;border-left:3px solid '+(ob.status==='done'?'#16a34a':ob.status==='failed'?'#dc2626':'#2557a7')+'"><strong>'+ic+' '+ob.text+'</strong><div style="font-size:11px;color:#64748b">'+(ob.status==='ongoing'?'En cours':ob.status==='done'?'Atteint':'Non atteint')+' · '+ds+'</div></div>';}).join('')+'</div>';}
-  html+='<div class="sec"><h3>🎯 Techniques</h3>'+SKT.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
-  html+='<div class="sec"><h3>💪 Physiques</h3>'+SKP.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
-  html+='<div class="sec"><h3>🧠 Mentaux</h3>'+SKM.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
-  html+='<div class="sec" style="border-left:3px solid #7c3aed"><h3 style="color:#7c3aed">🧩 Tactique</h3>'+SKTac.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#7c3aed':v>=4?'#d97706':'#dc2626';return'<div class="br"><div class="brl">'+s.lb+'</div><div class="brt"><div class="brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="brv">'+v+'</div></div>';}).join('')+'</div>';
-  if(p.forces||p.progres){html+='<div class="sec"><h3>📝 Notes</h3>'+(p.forces?'<p style="margin-bottom:7px"><strong style="color:#16a34a">Forces :</strong> '+p.forces+'</p>':'')+(p.progres?'<p><strong style="color:#d97706">Progression :</strong> '+p.progres+'</p>':'')+'</div>';}
-  html+='<div class="ft">Généré le '+new Date().toLocaleDateString('fr-FR')+' par '+(CU?CU.name:'?')+' · UR Scout DB v4</div>';
-  html+='</body></html>';
-
-  // Method 1: Print via hidden iframe (works on iOS Safari, Android, desktop — uses current page permissions)
-  printViaIframe(html,p.prenom+'_'+p.nom);
+  const mp=p.mentalProfile?MENTAL_PROFILES.find(x=>x.id===p.mentalProfile):null;
+  // Build PDF body content
+  let body='';
+  body+='<div class="pdf-hdr"><h1>🏟 UNION ROCHEFORTOISE</h1><p>'+p.prenom+' '+p.nom+' · '+new Date().toLocaleDateString('fr-FR')+'</p></div>';
+  body+='<div class="pdf-sec"><h3>👤 Profil</h3><div class="pdf-g3"><div class="pdf-st"><div class="pdf-n" style="color:'+oC(o)+'">'+o+'</div><div class="pdf-l">OVR</div></div><div class="pdf-st"><div class="pdf-n" style="color:#16a34a">'+tA+'</div><div class="pdf-l">Tech</div></div><div class="pdf-st"><div class="pdf-n" style="color:#d97706">'+pA+'</div><div class="pdf-l">Phys</div></div></div><div class="pdf-g3"><div class="pdf-st"><div class="pdf-n" style="color:#7c3aed">'+tacA+'</div><div class="pdf-l">Tactique</div></div><div class="pdf-st"><div class="pdf-n" style="color:#b45309">'+mA+'</div><div class="pdf-l">Mental</div></div></div><table class="pdf-t">'+[['Nom',p.prenom+' '+p.nom],['Âge',p.age?p.age+' ans':'—'],['Pied',p.pied||'—'],['Position',p.position?p.position.split('-').slice(1).join(' '):'—'],['Statut',p.statut||'—'],['Potentiel',p.potentiel||'—']].map(([k,v])=>'<tr><td style="color:#64748b;width:140px">'+k+'</td><td><strong>'+v+'</strong></td></tr>').join('')+'</table></div>';
+  if(matchs.length&&(plGoals.goals||plGoals.assists)){body+='<div class="pdf-sec"><h3>📊 Statistiques saison</h3><div class="pdf-g3"><div class="pdf-st"><div class="pdf-n" style="color:#dc2626">'+plGoals.goals+'</div><div class="pdf-l">Buts</div></div><div class="pdf-st"><div class="pdf-n">'+plGoals.assists+'</div><div class="pdf-l">Passes D.</div></div></div></div>';}
+  if(gps.vmax||gps.dist||gps.sprints){body+='<div class="pdf-sec"><h3>📡 Données GPS</h3><div class="pdf-g3">'+(gps.vmax?'<div class="pdf-st"><div class="pdf-n">'+gps.vmax+'</div><div class="pdf-l">km/h max</div></div>':'')+(gps.dist?'<div class="pdf-st"><div class="pdf-n">'+gps.dist+'</div><div class="pdf-l">km/match</div></div>':'')+(gps.sprints?'<div class="pdf-st"><div class="pdf-n">'+gps.sprints+'</div><div class="pdf-l">Sprints</div></div>':'')+'</div></div>';}
+  if(p.profil){body+='<div class="pdf-sec"><h3>🏷 '+p.profil+'</h3><p style="font-size:12px;margin-bottom:7px">'+(pfc?pfc.d:'')+'</p>'+(comps.length?'<div>'+comps.map(c2=>'<span class="pdf-chip">💎 '+c2+'</span>').join('')+'</div>':'')+'</div>';}
+  if(mp){body+='<div class="pdf-sec" style="border-left:3px solid '+mp.color+'"><h3 style="color:'+mp.color+'">🎭 Profil mental — '+mp.name+'</h3><p style="font-size:12px">'+mp.desc+'</p></div>';}
+  if(objs.length){body+='<div class="pdf-sec"><h3>🎯 Objectifs</h3>'+objs.map(ob=>{const ic=ob.status==='done'?'✓':ob.status==='failed'?'✕':'⏳';const ds=ob.dueDate?new Date(ob.dueDate).toLocaleDateString('fr-FR'):'—';return'<div style="padding:8px 11px;background:#f8fafc;border-radius:6px;margin-bottom:5px;border-left:3px solid '+(ob.status==='done'?'#16a34a':ob.status==='failed'?'#dc2626':'#2557a7')+'"><strong>'+ic+' '+ob.text+'</strong><div style="font-size:11px;color:#64748b">'+(ob.status==='ongoing'?'En cours':ob.status==='done'?'Atteint':'Non atteint')+' · '+ds+'</div></div>';}).join('')+'</div>';}
+  body+='<div class="pdf-sec"><h3>🎯 Techniques</h3>'+SKT.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="pdf-br"><div class="pdf-brl">'+s.lb+'</div><div class="pdf-brt"><div class="pdf-brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="pdf-brv">'+v+'</div></div>';}).join('')+'</div>';
+  body+='<div class="pdf-sec"><h3>💪 Physiques</h3>'+SKP.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="pdf-br"><div class="pdf-brl">'+s.lb+'</div><div class="pdf-brt"><div class="pdf-brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="pdf-brv">'+v+'</div></div>';}).join('')+'</div>';
+  body+='<div class="pdf-sec"><h3>🧠 Mentaux</h3>'+SKM.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="pdf-br"><div class="pdf-brl">'+s.lb+'</div><div class="pdf-brt"><div class="pdf-brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="pdf-brv">'+v+'</div></div>';}).join('')+'</div>';
+  body+='<div class="pdf-sec" style="border-left:3px solid #7c3aed"><h3 style="color:#7c3aed">🧩 Tactique</h3>'+SKTac.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#7c3aed':v>=4?'#d97706':'#dc2626';return'<div class="pdf-br"><div class="pdf-brl">'+s.lb+'</div><div class="pdf-brt"><div class="pdf-brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="pdf-brv">'+v+'</div></div>';}).join('')+'</div>';
+  if(p.forces||p.progres){body+='<div class="pdf-sec"><h3>📝 Notes</h3>'+(p.forces?'<p style="margin-bottom:7px"><strong style="color:#16a34a">Forces :</strong> '+p.forces+'</p>':'')+(p.progres?'<p><strong style="color:#d97706">Progression :</strong> '+p.progres+'</p>':'')+'</div>';}
+  body+='<div class="pdf-ft">Généré le '+new Date().toLocaleDateString('fr-FR')+' par '+(CU?CU.name:'?')+' · UR Scout DB v4</div>';
+  // Open PDF view
+  showPDFView(body,p.prenom+' '+p.nom);
 }
 
-function printViaIframe(htmlContent,filename){
-  // Remove any existing print iframe
-  const old=document.getElementById('print-iframe');if(old)old.remove();
-  // Create hidden iframe
-  const iframe=document.createElement('iframe');
-  iframe.id='print-iframe';
-  iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0';
-  document.body.appendChild(iframe);
-  const doc=iframe.contentDocument||iframe.contentWindow.document;
-  doc.open();doc.write(htmlContent);doc.close();
-  // Wait for iframe to load, then trigger print
-  setTimeout(()=>{
-    try{
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      toast('🖨️ Fenêtre d\'impression ouverte');
-      // Cleanup after a delay
-      setTimeout(()=>{const el=document.getElementById('print-iframe');if(el)el.remove();},3000);
-    }catch(e){
-      // Final fallback: download HTML file
-      iframe.remove();
-      try{
-        const blob=new Blob([htmlContent],{type:'text/html;charset=utf-8'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url;a.download='UR_'+filename+'_'+new Date().toISOString().slice(0,10)+'.html';
-        document.body.appendChild(a);a.click();
-        setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
-        toast('📄 Téléchargé. Ouvrez le fichier puis menu Partager → Imprimer');
-      }catch(err){toast('⚠ Erreur : '+err.message);}
-    }
-  },500);
+function showPDFView(content,title){
+  // Remove any existing pdf overlay
+  const old=document.getElementById('pdf-overlay');if(old)old.remove();
+  // Create full-screen overlay
+  const overlay=document.createElement('div');
+  overlay.id='pdf-overlay';
+  overlay.innerHTML='<div class="pdf-toolbar no-print"><div style="font-size:14px;font-weight:700;color:#0e1a2e">📄 '+title+'</div><div style="display:flex;gap:8px"><button class="pdf-btn-print" onclick="window.print()">🖨️ Imprimer / PDF</button><button class="pdf-btn-close" onclick="closePDFView()">✕</button></div></div><div class="pdf-content" id="pdf-content">'+content+'</div>';
+  document.body.appendChild(overlay);
+  document.body.classList.add('pdf-mode');
+  // Scroll to top
+  setTimeout(()=>{overlay.scrollTop=0;},50);
+  toast('💡 Cliquez "Imprimer / PDF" en haut');
+}
+function closePDFView(){
+  const ov=document.getElementById('pdf-overlay');if(ov)ov.remove();
+  document.body.classList.remove('pdf-mode');
 }
 
 // ═══════ ADMIN ═══════
