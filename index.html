@@ -2209,25 +2209,207 @@ document.addEventListener('DOMContentLoaded',function(){
 document.addEventListener('click',function(e){if(e.target.closest('[onclick*="closeMod(\'m-pl\')"]'))setTimeout(window.resetPsychoProfil,100);});
 })();
 </script>
-  <script>
-(function(){
-var POS_CAT={'GK-Gardien moderne':'GK','GK-Gardien fixe':'GK','DEF-Défenseur central':'DEF','DEF-DC Relanceur':'DEF','DEF-Latéral moderne':'LAT','DEF-Latéral fixe':'LAT','DEF-Latéral offensif':'LAT','MIL-Milieu défensif':'MIL','MIL-Récupérateur':'MIL','MIL-Sentinelle':'MIL','MIL-Axial':'MIL','MIL-Meneur avancé':'MIL','MIL-Complet':'MIL','ATT-Pivot':'ATT','ATT-16m':'ATT','ATT-Excentré':'LAT','ATT-Ailier':'LAT','ATT-Complet':'ATT','ATT-Profondeur':'ATT'};
-var CAT_INFO={GK:{ico:'🧤',label:'Gardien de but',color:'#90cdf4'},DEF:{ico:'🛡️',label:'Défenseur central',color:'#68d391'},MIL:{ico:'⚙️',label:'Milieu de terrain',color:'#a78bfa'},LAT:{ico:'🚀',label:'Latéral / Ailier',color:'#f6ad55'},ATT:{ico:'🎯',label:'Attaquant',color:'#fc8181'}};
-var CRITERIA={GK:['Jeu au pied court','Jeu au pied long','Sorties aériennes','Réflexes / arrêts','1v1 gardien','Placement / lecture du jeu','Communication défensive','Gestion de la profondeur','Relance sous pression','Mental / concentration'],DEF:['Duel défensif 1v1','Jeu aérien','Marquage individuel','Couverture / profondeur','Anticipation / lecture','Relance courte','Relance longue','Sortie de balle sous pression','Gestion des espaces','Leadership défensif'],MIL:['Vision du jeu','Orientation du jeu (scan)','Qualité de passe courte','Qualité de passe longue','Pressing / contre-pressing','Résistance à la pression','Création offensive','Projection vers l\'avant','Gestion du tempo','Volume de course'],LAT:['Duels 1v1 défensifs','Projection offensive','Centres','Qualité de passe','Repli défensif','Gestion de la profondeur','Endurance / répétition efforts','Timing de montée','Jeu intérieur / extérieur','Coordination avec ailier'],ATT:['Finition','Appels de balle','Jeu dos au but','1v1 offensif','Sens du placement','Jeu de tête offensif','Pressing offensif','Création d\'espaces','Prise de décision','Mental de buteur']};
-function getCategory(v){return v?POS_CAT[v]||null:null;}
-var s=document.createElement('style');
-s.textContent='.cposte-hidden{display:none!important}.cposte-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}.cposte-lbl{font-size:12px;color:#a0aec0;flex:1.2;line-height:1.3}.cposte-slider{flex:1;min-width:60px}.cposte-num{font-size:12px;font-weight:700;color:#63b3ed;width:22px;text-align:right;flex-shrink:0}.cposte-avg{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:10px}.cposte-det-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}.cposte-det-lbl{font-size:12px;color:#718096;flex:1.2}.cposte-det-bar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}.cposte-det-fill{height:100%;border-radius:3px;transition:width .3s}.cposte-det-val{font-size:12px;font-weight:700;color:#fff;width:20px;text-align:right;flex-shrink:0}';
-document.head.appendChild(s);
-window.updateCposteAvg=function(){var ins=document.querySelectorAll('#cposte-grid input[data-crit]');if(!ins.length)return;var sum=0;ins.forEach(function(i){sum+=parseInt(i.value);});var avg=Math.round(sum/ins.length*10)/10;var sec=document.getElementById('cposte-section');var cat=sec?sec.dataset.cat:'';var info=cat?CAT_INFO[cat]:null;var w=document.getElementById('cposte-avg-wrap');if(w&&info)w.innerHTML='<span class="cposte-avg" style="background:'+info.color+'22;color:'+info.color+';border:1px solid '+info.color+'55">'+info.ico+' Moyenne poste : <strong>'+avg+'</strong> / 10</span>';};
-function renderSliders(cat,sv){sv=sv||{};var h='';CRITERIA[cat].forEach(function(c){var v=sv[c]!==undefined?sv[c]:5;h+='<div class="cposte-row"><div class="cposte-lbl">'+c+'</div><input type="range" class="cposte-slider" min="0" max="10" value="'+v+'" data-crit="'+c.replace(/"/g,"&quot;")+'" oninput="this.nextElementSibling.textContent=this.value;updateCposteAvg()"><div class="cposte-num">'+v+'</div></div>';});return h;}
-function showCategory(cat,sv){var sec=document.getElementById('cposte-section');var grid=document.getElementById('cposte-grid');var tit=document.getElementById('cposte-title');if(!sec||!grid)return;if(!cat){sec.classList.add('cposte-hidden');return;}var info=CAT_INFO[cat];sec.dataset.cat=cat;sec.style.borderLeft='3px solid '+info.color;tit.style.color=info.color;tit.textContent=info.ico+' Compétences de poste — '+info.label;grid.innerHTML=renderSliders(cat,sv||{});sec.classList.remove('cposte-hidden');window.updateCposteAvg();}
-function inject(){if(document.getElementById('cposte-section'))return;var ppo=document.getElementById('ppo');if(!ppo)return;var ps=ppo.closest('.sec');if(!ps||!ps.parentNode)return;var sec=document.createElement('div');sec.className='sec cposte-hidden';sec.id='cposte-section';sec.innerHTML='<div class="stit" id="cposte-title">📊 Compétences de poste</div><div style="font-size:11px;color:#718096;margin-bottom:13px;line-height:1.5">Critères spécifiques à la position — de 0 (absent) à 10 (excellent).</div><div id="cposte-grid"></div><div id="cposte-avg-wrap"></div>';ps.parentNode.insertBefore(sec,ps.nextSibling);ppo.addEventListener('change',function(){showCategory(getCategory(this.value),{});});if(ppo.value)showCategory(getCategory(ppo.value),{});}
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',inject);}else{inject();}
-var _ps=JSON.stringify;
-JSON.stringify=function(value,replacer,space){if(value&&typeof value==='object'&&!Array.isArray(value)&&Array.isArray(value.players)&&value.players.length>0){var ins=document.querySelectorAll('#cposte-grid input[data-crit]');if(ins.length>0){var cp={};ins.forEach(function(i){cp[i.dataset.crit]=parseInt(i.value);});var eid=document.getElementById('peid');var e=eid?eid.value:'';var t=null;if(e)t=value.players.find(function(p){return String(p.id)===String(e);});if(!t)t=value.players[value.players.length-1];if(t)t.competencesPoste=cp;}}return _ps.call(this,value,replacer,space);};
-document.addEventListener('DOMContentLoaded',function(){var _wp='',_we='';setInterval(function(){var ppo=document.getElementById('ppo'),peid=document.getElementById('peid');if(!ppo||!peid)return;var cp=ppo.value,ce=peid.value;if(cp===_wp&&ce===_we)return;var pc=cp!==_wp,ec=ce!==_we;_wp=cp;_we=ce;if(!cp){showCategory(null);return;}var sv={};if(ce&&typeof players!=='undefined'){var j=players.find(function(p){return String(p.id)===String(ce);});if(j&&j.competencesPoste)sv=j.competencesPoste;}if(pc||ec)showCategory(getCategory(cp),sv);},200);});
-document.addEventListener('DOMContentLoaded',function(){var dtc=document.getElementById('dtc');if(!dtc)return;new MutationObserver(function(){if(dtc.querySelector('.cposte-det-block'))return;if(!dtc.children.length)return;if(typeof players==='undefined'||!players.length)return;var txt=dtc.textContent;var j=players.find(function(p){return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);});if(!j||!j.competencesPoste||!j.poste)return;var cat=getCategory(j.poste);if(!cat)return;var info=CAT_INFO[cat];var criteria=CRITERIA[cat];var vals=j.competencesPoste;var sum=0,count=0;criteria.forEach(function(c){if(vals[c]!==undefined){sum+=vals[c];count++;}});var avg=count?Math.round(sum/count*10)/10:0;var block=document.createElement('div');block.className='cposte-det-block sec';block.style.borderLeft='3px solid '+info.color;var rows=criteria.map(function(c){var v=vals[c]!==undefined?vals[c]:0;return'<div class="cposte-det-row"><div class="cposte-det-lbl">'+c+'</div><div class="cposte-det-bar"><div class="cposte-det-fill" style="width:'+(v*10)+'%;background:'+info.color+'"></div></div><div class="cposte-det-val">'+v+'</div></div>';}).join('');block.innerHTML='<div class="stit" style="color:'+info.color+'">'+info.ico+' Compétences — '+info.label+'</div><div style="font-size:11px;color:#718096;margin-bottom:11px">Moyenne poste : <strong style="color:'+info.color+'">'+avg+' / 10</strong></div>'+rows;dtc.appendChild(block);}).observe(dtc,{childList:true});});
-document.addEventListener('click',function(e){if(e.target.closest('[onclick*="closeMod(\'m-pl\')"]'))setTimeout(function(){showCategory(null);},100);});
+ <!-- ═══ COMPÉTENCES DE POSTE — v1 ═══ -->
+<script>
+(function () {
+  var POS_CAT = {
+    'GK-Gardien moderne':'GK','GK-Gardien fixe':'GK',
+    'DEF-Défenseur central':'DEF','DEF-DC Relanceur':'DEF',
+    'DEF-Latéral moderne':'LAT','DEF-Latéral fixe':'LAT','DEF-Latéral offensif':'LAT',
+    'MIL-Milieu défensif':'MIL','MIL-Récupérateur':'MIL','MIL-Sentinelle':'MIL',
+    'MIL-Axial':'MIL','MIL-Meneur avancé':'MIL','MIL-Complet':'MIL',
+    'ATT-Pivot':'ATT','ATT-16m':'ATT',
+    'ATT-Excentré':'LAT','ATT-Ailier':'LAT',
+    'ATT-Complet':'ATT','ATT-Profondeur':'ATT'
+  };
+  var CAT_INFO = {
+    GK :{ico:'🧤',label:'Gardien de but',   color:'#90cdf4'},
+    DEF:{ico:'🛡️', label:'Défenseur central',color:'#68d391'},
+    MIL:{ico:'⚙️', label:'Milieu de terrain',color:'#a78bfa'},
+    LAT:{ico:'🚀',label:'Latéral / Ailier', color:'#f6ad55'},
+    ATT:{ico:'🎯',label:'Attaquant',         color:'#fc8181'}
+  };
+  var CRITERIA = {
+    GK:['Jeu au pied court','Jeu au pied long','Sorties aériennes','Réflexes / arrêts','1v1 gardien','Placement / lecture du jeu','Communication défensive','Gestion de la profondeur','Relance sous pression','Mental / concentration'],
+    DEF:['Duel défensif 1v1','Jeu aérien','Marquage individuel','Couverture / profondeur','Anticipation / lecture','Relance courte','Relance longue','Sortie de balle sous pression','Gestion des espaces','Leadership défensif'],
+    MIL:['Vision du jeu','Orientation du jeu (scan)','Qualité de passe courte','Qualité de passe longue','Pressing / contre-pressing','Résistance à la pression','Création offensive','Projection vers l\'avant','Gestion du tempo','Volume de course'],
+    LAT:['Duels 1v1 défensifs','Projection offensive','Centres','Qualité de passe','Repli défensif','Gestion de la profondeur','Endurance / répétition efforts','Timing de montée','Jeu intérieur / extérieur','Coordination avec ailier'],
+    ATT:['Finition','Appels de balle','Jeu dos au but','1v1 offensif','Sens du placement','Jeu de tête offensif','Pressing offensif','Création d\'espaces','Prise de décision','Mental de buteur']
+  };
+  function getCategory(v){return v?(POS_CAT[v]||null):null;}
+
+  /* CSS formulaire */
+  var s=document.createElement('style');
+  s.textContent='.cposte-hidden{display:none!important}.cposte-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}.cposte-lbl{font-size:12px;color:#a0aec0;flex:1.2;line-height:1.3}.cposte-slider{flex:1;min-width:60px}.cposte-num{font-size:12px;font-weight:700;color:#63b3ed;width:22px;text-align:right;flex-shrink:0}.cposte-avg{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:10px}'+
+  /* CSS fiche détail */
+  '.cposte-det-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}.cposte-det-lbl{font-size:12px;color:#718096;flex:1.2}.cposte-det-bar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}.cposte-det-fill{height:100%;border-radius:3px;transition:width .3s}.cposte-det-val{font-size:12px;font-weight:700;color:#fff;width:20px;text-align:right;flex-shrink:0}'+
+  /* CSS cartes */
+  '.cposte-card-block{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)}.cposte-card-title{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:6px}.cposte-card-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}.cposte-card-lbl{font-size:11px;color:#a0aec0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cposte-card-bar{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}.cposte-card-fill{height:100%;border-radius:2px}.cposte-card-val{font-size:11px;font-weight:700;width:16px;text-align:right;flex-shrink:0}.cposte-card-avg{font-size:10px;font-weight:700;margin-top:6px;opacity:.8}';
+  document.head.appendChild(s);
+
+  /* Formulaire */
+  function renderSliders(cat,saved){
+    saved=saved||{};
+    return CRITERIA[cat].map(function(c){
+      var v=saved[c]!==undefined?saved[c]:5;
+      return '<div class="cposte-row"><div class="cposte-lbl">'+c+'</div>'+
+        '<input type="range" class="cposte-slider" min="0" max="10" value="'+v+'" data-crit="'+c.replace(/"/g,'&quot;')+'" oninput="this.nextElementSibling.textContent=this.value;updateCposteAvg()">'+
+        '<div class="cposte-num">'+v+'</div></div>';
+    }).join('');
+  }
+  window.updateCposteAvg=function(){
+    var inputs=document.querySelectorAll('#cposte-grid input[data-crit]');
+    if(!inputs.length)return;
+    var sum=0;inputs.forEach(function(i){sum+=parseInt(i.value);});
+    var avg=Math.round(sum/inputs.length*10)/10;
+    var sec=document.getElementById('cposte-section');
+    var cat=sec?sec.dataset.cat:'';
+    var info=cat?CAT_INFO[cat]:null;
+    var wrap=document.getElementById('cposte-avg-wrap');
+    if(wrap&&info)wrap.innerHTML='<span class="cposte-avg" style="background:'+info.color+'22;color:'+info.color+';border:1px solid '+info.color+'55">'+info.ico+' Moyenne poste : <strong>'+avg+'</strong> / 10</span>';
+  };
+  function showCategory(cat,saved){
+    var sec=document.getElementById('cposte-section');
+    var grid=document.getElementById('cposte-grid');
+    var tit=document.getElementById('cposte-title');
+    if(!sec||!grid)return;
+    if(!cat){sec.classList.add('cposte-hidden');return;}
+    var info=CAT_INFO[cat];
+    sec.dataset.cat=cat;
+    sec.style.borderLeft='3px solid '+info.color;
+    tit.style.color=info.color;
+    tit.textContent=info.ico+' Compétences de poste — '+info.label;
+    grid.innerHTML=renderSliders(cat,saved||{});
+    sec.classList.remove('cposte-hidden');
+    window.updateCposteAvg();
+  }
+  function inject(){
+    if(document.getElementById('cposte-section'))return;
+    var ppo=document.getElementById('ppo');
+    if(!ppo)return;
+    var ppoSec=ppo.closest('.sec');
+    if(!ppoSec||!ppoSec.parentNode)return;
+    var sec=document.createElement('div');
+    sec.className='sec cposte-hidden';sec.id='cposte-section';
+    sec.innerHTML='<div class="stit" id="cposte-title">📊 Compétences de poste</div>'+
+      '<div style="font-size:11px;color:#718096;margin-bottom:13px;line-height:1.5">Critères spécifiques à la position — de 0 (absent) à 10 (excellent).</div>'+
+      '<div id="cposte-grid"></div><div id="cposte-avg-wrap"></div>';
+    ppoSec.parentNode.insertBefore(sec,ppoSec.nextSibling);
+    ppo.addEventListener('change',function(){showCategory(getCategory(this.value),{});});
+    if(ppo.value)showCategory(getCategory(ppo.value),{});
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',inject);}else{inject();}
+
+  /* Sauvegarde */
+  var _ps=JSON.stringify;
+  JSON.stringify=function(v,r,sp){
+    if(v&&typeof v==='object'&&!Array.isArray(v)&&Array.isArray(v.players)&&v.players.length>0){
+      var inputs=document.querySelectorAll('#cposte-grid input[data-crit]');
+      if(inputs.length>0){
+        var comp={};inputs.forEach(function(i){comp[i.dataset.crit]=parseInt(i.value);});
+        var eid=(document.getElementById('peid')||{}).value||'';
+        var t=eid?v.players.find(function(p){return String(p.id)===String(eid);}):null;
+        if(!t)t=v.players[v.players.length-1];
+        if(t)t.competencesPoste=comp;
+      }
+    }
+    return _ps.call(this,v,r,sp);
+  };
+
+  /* Restauration en édition */
+  document.addEventListener('DOMContentLoaded',function(){
+    var _wp='',_we='';
+    setInterval(function(){
+      var ppo=document.getElementById('ppo'),peid=document.getElementById('peid');
+      if(!ppo||!peid)return;
+      var cp=ppo.value,ce=peid.value;
+      if(cp===_wp&&ce===_we)return;
+      var posChg=cp!==_wp,eidChg=ce!==_we;
+      _wp=cp;_we=ce;
+      if(!cp){showCategory(null);return;}
+      var saved={};
+      if(ce&&typeof players!=='undefined'){
+        var j=players.find(function(p){return String(p.id)===String(ce);});
+        if(j&&j.competencesPoste)saved=j.competencesPoste;
+      }
+      if(posChg||eidChg)showCategory(getCategory(cp),saved);
+    },200);
+  });
+
+  /* Fiche détail #dtc */
+  document.addEventListener('DOMContentLoaded',function(){
+    var dtc=document.getElementById('dtc');
+    if(!dtc)return;
+    new MutationObserver(function(){
+      if(dtc.querySelector('.cposte-det-block'))return;
+      if(!dtc.children.length)return;
+      if(typeof players==='undefined'||!players.length)return;
+      var txt=dtc.textContent;
+      var j=players.find(function(p){return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);});
+      if(!j||!j.competencesPoste||!j.poste)return;
+      var cat=getCategory(j.poste);if(!cat)return;
+      var info=CAT_INFO[cat],criteria=CRITERIA[cat],vals=j.competencesPoste;
+      var sum=0,cnt=0;
+      criteria.forEach(function(c){if(vals[c]!==undefined){sum+=vals[c];cnt++;}});
+      var avg=cnt?Math.round(sum/cnt*10)/10:0;
+      var block=document.createElement('div');
+      block.className='cposte-det-block sec';
+      block.style.borderLeft='3px solid '+info.color;
+      block.innerHTML=
+        '<div class="stit" style="color:'+info.color+'">'+info.ico+' Compétences — '+info.label+'</div>'+
+        '<div style="font-size:11px;color:#718096;margin-bottom:11px">Moyenne poste : <strong style="color:'+info.color+'">'+avg+' / 10</strong></div>'+
+        criteria.map(function(c){
+          var v=vals[c]!==undefined?vals[c]:0;
+          return '<div class="cposte-det-row"><div class="cposte-det-lbl">'+c+'</div>'+
+            '<div class="cposte-det-bar"><div class="cposte-det-fill" style="width:'+(v*10)+'%;background:'+info.color+'"></div></div>'+
+            '<div class="cposte-det-val">'+v+'</div></div>';
+        }).join('');
+      dtc.appendChild(block);
+    }).observe(dtc,{childList:true});
+  });
+
+  /* Cartes #pgrid */
+  function injectCard(card){
+    if(card.querySelector('.cposte-card-block'))return;
+    if(typeof players==='undefined')return;
+    var pid=card.dataset.id||card.dataset.pid||null;
+    if(!pid){var m=(card.getAttribute('onclick')||'').match(/['"]([\w-]+)['"]/);if(m)pid=m[1];}
+    var j=pid?players.find(function(p){return String(p.id)===String(pid);}):null;
+    if(!j){var t=card.textContent;j=players.find(function(p){return p.nom&&p.prenom&&t.includes(p.prenom)&&t.includes(p.nom);});}
+    if(!j||!j.competencesPoste||!j.poste)return;
+    var cat=getCategory(j.poste);if(!cat)return;
+    var info=CAT_INFO[cat],criteria=CRITERIA[cat],vals=j.competencesPoste;
+    var sorted=criteria.map(function(c){return{label:c,val:vals[c]!==undefined?vals[c]:0};}).sort(function(a,b){return b.val-a.val;}).slice(0,5);
+    var sum=0,cnt=0;criteria.forEach(function(c){if(vals[c]!==undefined){sum+=vals[c];cnt++;}});
+    var avg=cnt?Math.round(sum/cnt*10)/10:0;
+    var block=document.createElement('div');
+    block.className='cposte-card-block';
+    block.innerHTML=
+      '<div class="cposte-card-title" style="color:'+info.color+'">'+info.ico+' Compétences '+info.label+'</div>'+
+      sorted.map(function(item){
+        return '<div class="cposte-card-row"><div class="cposte-card-lbl">'+item.label+'</div>'+
+          '<div class="cposte-card-bar"><div class="cposte-card-fill" style="width:'+(item.val*10)+'%;background:'+info.color+'"></div></div>'+
+          '<div class="cposte-card-val" style="color:'+info.color+'">'+item.val+'</div></div>';
+      }).join('')+
+      '<div class="cposte-card-avg" style="color:'+info.color+'">⌀ Moyenne poste : '+avg+' / 10</div>';
+    card.appendChild(block);
+  }
+  function refreshAllCards(){
+    if(typeof players==='undefined')return;
+    document.querySelectorAll('.cposte-card-block').forEach(function(b){b.remove();});
+    document.querySelectorAll('.pcard').forEach(injectCard);
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    var pgrid=document.getElementById('pgrid');
+    if(pgrid)new MutationObserver(function(){setTimeout(refreshAllCards,80);}).observe(pgrid,{childList:true,subtree:true});
+    setTimeout(refreshAllCards,1200);
+    setTimeout(refreshAllCards,3500);
+  });
+
+  /* Reset fermeture modale */
+  document.addEventListener('click',function(e){
+    if(e.target.closest('[onclick*="closeMod(\'m-pl\')"]'))setTimeout(function(){showCategory(null);},100);
+  });
 })();
 </script>
 </body>
