@@ -2131,118 +2131,82 @@ function vBtn(targetId,mode){return '<button type="button" class="voice-btn" dat
 }());
 </script>
 <script>
-(function () {
-  const css = `
-    .ppsycho-sec { border-left: 3px solid #9f7aea !important; }
-    .ppsycho-grid { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 4px; }
-    .ppsycho-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; transition: transform .15s, background .15s, border-color .15s; background: rgba(255,255,255,.04); user-select: none; }
-    .ppsycho-card:hover { transform: translateX(4px); background: rgba(255,255,255,.08); }
-    .ppsycho-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
-    .ppsycho-info { display: flex; flex-direction: column; gap: 2px; }
-    .ppsycho-info strong { font-size: 13px; color: #e2e8f0; font-weight: 600; }
-    .ppsycho-info span { font-size: 11px; opacity: .55; letter-spacing: .02em; }
-    .ppsycho-card.vert  .ppsycho-dot { background: #48bb78; box-shadow: 0 0 8px rgba(72,187,120,.5); }
-    .ppsycho-card.bleu  .ppsycho-dot { background: #4299e1; box-shadow: 0 0 8px rgba(66,153,225,.5); }
-    .ppsycho-card.rouge .ppsycho-dot { background: #fc8181; box-shadow: 0 0 8px rgba(252,129,129,.5); }
-    .ppsycho-card.vert.selected  { border-color: #48bb78; background: rgba(72,187,120,.14); }
-    .ppsycho-card.bleu.selected  { border-color: #4299e1; background: rgba(66,153,225,.14); }
-    .ppsycho-card.rouge.selected { border-color: #fc8181; background: rgba(252,129,129,.14); }
-    .pp-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-top: 4px; }
-    .pp-badge.vert  { background: rgba(72,187,120,.15); color: #48bb78; border: 1px solid rgba(72,187,120,.4); }
-    .pp-badge.bleu  { background: rgba(66,153,225,.15); color: #4299e1; border: 1px solid rgba(66,153,225,.4); }
-    .pp-badge.rouge { background: rgba(252,129,129,.15); color: #fc8181; border: 1px solid rgba(252,129,129,.4); }
-  `;
-  const styleEl = document.createElement('style');
-  styleEl.textContent = css;
-  document.head.appendChild(styleEl);
+(function(){var styleEl=document.createElement('style');styleEl.textContent='.ppsycho-sec{border-left:3px solid #9f7aea !important}.ppsycho-grid{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px}.ppsycho-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:transform .15s,background .15s,border-color .15s;background:rgba(255,255,255,.04);user-select:none}.ppsycho-card:hover{transform:translateX(4px);background:rgba(255,255,255,.08)}.ppsycho-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0}.ppsycho-info{display:flex;flex-direction:column;gap:2px}.ppsycho-info strong{font-size:13px;color:#e2e8f0;font-weight:600}.ppsycho-info span{font-size:11px;opacity:.55;letter-spacing:.02em}.ppsycho-card.vert .ppsycho-dot{background:#48bb78;box-shadow:0 0 8px rgba(72,187,120,.5)}.ppsycho-card.bleu .ppsycho-dot{background:#4299e1;box-shadow:0 0 8px rgba(66,153,225,.5)}.ppsycho-card.rouge .ppsycho-dot{background:#fc8181;box-shadow:0 0 8px rgba(252,129,129,.5)}.ppsycho-card.vert.selected{border-color:#48bb78;background:rgba(72,187,120,.14)}.ppsycho-card.bleu.selected{border-color:#4299e1;background:rgba(66,153,225,.14)}.ppsycho-card.rouge.selected{border-color:#fc8181;background:rgba(252,129,129,.14)}.pp-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px}.pp-badge.vert{background:rgba(72,187,120,.18);color:#48bb78;border:1px solid rgba(72,187,120,.4)}.pp-badge.bleu{background:rgba(66,153,225,.18);color:#4299e1;border:1px solid rgba(66,153,225,.4)}.pp-badge.rouge{background:rgba(252,129,129,.18);color:#fc8181;border:1px solid rgba(252,129,129,.4)}.pp-badge-wrap{margin-top:5px}';document.head.appendChild(styleEl);
 
-  const PSYCHO_PROFILES = [
-    { id:'vert',  ico:'🟢', label:'Créatif',    sub:'Créatif · Émotionnel · Intuitif',          tip:'Besoin de liberté, de confiance et de sens dans ses actions.' },
-    { id:'bleu',  ico:'🔵', label:'Analytique', sub:'Analytique · Pragmatique · Cartésien',     tip:'Besoin de clarté, de données et de logique dans les consignes.' },
-    { id:'rouge', ico:'🔴', label:'Leader',     sub:'Leader · Dominant · Compétiteur',          tip:'Besoin de défis, de responsabilités et de reconnaissance.' }
-  ];
+var PSYCHO_PROFILES=[{id:'vert',ico:'🟢',label:'Créatif',sub:'Créatif · Émotionnel · Intuitif',tip:'Besoin de liberté, de confiance et de sens.'},{id:'bleu',ico:'🔵',label:'Analytique',sub:'Analytique · Pragmatique · Cartésien',tip:'Besoin de clarté, de données et de logique.'},{id:'rouge',ico:'🔴',label:'Leader',sub:'Leader · Dominant · Compétiteur',tip:'Besoin de défis, de responsabilités et de reconnaissance.'}];
 
-  function buildSection() {
-    const sec = document.createElement('div');
-    sec.className = 'sec ppsycho-sec';
-    sec.id = 'ppsycho-section';
-    const cards = PSYCHO_PROFILES.map(p => `
-      <div class="ppsycho-card ${p.id}" data-pp="${p.id}" title="${p.tip}" onclick="selectPsychoProfil(this)">
-        <div class="ppsycho-dot"></div>
-        <div class="ppsycho-info"><strong>${p.ico} ${p.label}</strong><span>${p.sub}</span></div>
-      </div>`).join('');
-    sec.innerHTML = `
-      <div class="stit" style="color:#9f7aea">🧠 Profil psychologique</div>
-      <div style="font-size:11px;color:#718096;margin-bottom:11px;line-height:1.5">Couleur dominante du joueur — guide votre communication et votre management individuel.</div>
-      <div class="ppsycho-grid">${cards}</div>
-      <input type="hidden" id="ppsycho">`;
-    return sec;
+window.getPsychoBadge=function(val){var p=PSYCHO_PROFILES.find(function(x){return x.id===val;});if(!p)return '';return '<span class="pp-badge '+p.id+'" title="'+p.tip+'">'+p.ico+' '+p.label+'</span>';};
+
+function buildSection(){var sec=document.createElement('div');sec.className='sec ppsycho-sec';sec.id='ppsycho-section';var cards=PSYCHO_PROFILES.map(function(p){return '<div class="ppsycho-card '+p.id+'" data-pp="'+p.id+'" title="'+p.tip+'" onclick="selectPsychoProfil(this)"><div class="ppsycho-dot"></div><div class="ppsycho-info"><strong>'+p.ico+' '+p.label+'</strong><span>'+p.sub+'</span></div></div>';}).join('');sec.innerHTML='<div class="stit" style="color:#9f7aea">🧠 Profil psychologique</div><div style="font-size:11px;color:#718096;margin-bottom:11px;line-height:1.5">Couleur dominante du joueur — guide votre communication et management individuel.</div><div class="ppsycho-grid">'+cards+'</div><input type="hidden" id="ppsycho">';return sec;}
+
+function inject(){if(document.getElementById('ppsycho-section'))return;var g=document.getElementById('pgps-vmax');if(!g)return;var s=g.closest('.sec');if(!s||!s.parentNode)return;s.parentNode.insertBefore(buildSection(),s);}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',inject);}else{inject();}
+
+window.selectPsychoProfil=function(el){document.querySelectorAll('.ppsycho-card').forEach(function(c){c.classList.remove('selected');});el.classList.add('selected');var inp=document.getElementById('ppsycho');if(inp)inp.value=el.dataset.pp;};
+window.setPsychoProfil=function(val){document.querySelectorAll('.ppsycho-card').forEach(function(c){c.classList.remove('selected');});var inp=document.getElementById('ppsycho');if(inp)inp.value=val||'';if(val){var card=document.querySelector('.ppsycho-card[data-pp="'+val+'"]');if(card)card.classList.add('selected');}};
+window.resetPsychoProfil=function(){window.setPsychoProfil('');};
+
+// SAVE — intercept JSON.stringify (méthode la plus fiable)
+var _origStr=JSON.stringify;
+JSON.stringify=function(value,replacer,space){
+  if(value&&typeof value==='object'&&!Array.isArray(value)&&Array.isArray(value.players)&&value.players.length>0){
+    var pEl=document.getElementById('ppsycho'),eEl=document.getElementById('peid');
+    var pVal=pEl?pEl.value:'',eid=eEl?eEl.value:'';
+    if(pVal){var t=eid?value.players.find(function(p){return String(p.id)===String(eid);}):null;if(!t)t=value.players[value.players.length-1];if(t)t.psychoProfil=pVal;}
   }
+  return _origStr.call(this,value,replacer,space);
+};
 
-  function inject() {
-    if (document.getElementById('ppsycho-section')) return;
-    const gpsInput = document.getElementById('pgps-vmax');
-    if (!gpsInput) return;
-    const gpsSec = gpsInput.closest('.sec');
-    if (!gpsSec || !gpsSec.parentNode) return;
-    gpsSec.parentNode.insertBefore(buildSection(), gpsSec);
-  }
+// RESTAURATION édition
+document.addEventListener('DOMContentLoaded',function(){
+  var peid=document.getElementById('peid');if(!peid)return;
+  var _last='';
+  setInterval(function(){var cur=peid.value;if(cur===_last)return;_last=cur;
+    if(cur&&typeof players!=='undefined'){var j=players.find(function(p){return String(p.id)===String(cur);});window.setPsychoProfil(j&&j.psychoProfil?j.psychoProfil:'');}
+    else{window.resetPsychoProfil();}
+  },150);
+});
 
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', inject); }
-  else { inject(); }
+// BADGE sur les cartes #pgrid
+function injectBadgeOnCard(card){
+  if(card.querySelector('.pp-badge-wrap'))return;
+  if(typeof players==='undefined')return;
+  var pid=card.dataset.id||card.dataset.pid||null;
+  if(!pid){var oc=card.getAttribute('onclick')||'';var m=oc.match(/['"]([\w-]+)['"]/);if(m)pid=m[1];}
+  var j=null;
+  if(pid)j=players.find(function(p){return String(p.id)===String(pid);});
+  if(!j){var txt=card.textContent;j=players.find(function(p){return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);});}
+  if(!j||!j.psychoProfil)return;
+  var wrap=document.createElement('div');wrap.className='pp-badge-wrap';wrap.innerHTML=window.getPsychoBadge(j.psychoProfil);
+  var bd=card.querySelector('.bd');
+  if(bd)bd.parentNode.insertBefore(wrap,bd.nextSibling);
+  else{var pt=card.querySelector('.ptop');if(pt)pt.appendChild(wrap);else card.insertBefore(wrap,card.firstChild);}
+}
+function injectAllCards(){if(typeof players==='undefined')return;document.querySelectorAll('.pcard').forEach(injectBadgeOnCard);}
+document.addEventListener('DOMContentLoaded',function(){
+  var pg=document.getElementById('pgrid');
+  if(pg)new MutationObserver(function(){setTimeout(injectAllCards,50);}).observe(pg,{childList:true,subtree:true});
+  setTimeout(injectAllCards,1000);setTimeout(injectAllCards,3000);
+});
 
-  window.selectPsychoProfil = function(el) {
-    document.querySelectorAll('.ppsycho-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    const inp = document.getElementById('ppsycho');
-    if (inp) inp.value = el.dataset.pp;
-  };
-  window.setPsychoProfil = function(val) {
-    document.querySelectorAll('.ppsycho-card').forEach(c => c.classList.remove('selected'));
-    const inp = document.getElementById('ppsycho');
-    if (inp) inp.value = val || '';
-    if (val) { const card = document.querySelector(`.ppsycho-card[data-pp="${val}"]`); if (card) card.classList.add('selected'); }
-  };
-  window.resetPsychoProfil = function() { setPsychoProfil(''); };
-  window.getPsychoBadge = function(val) {
-    const p = PSYCHO_PROFILES.find(x => x.id === val);
-    if (!p) return '';
-    return `<span class="pp-badge ${p.id}" title="${p.tip}">${p.ico} ${p.label}</span>`;
-  };
+// BADGE dans la fiche détail #dtc
+document.addEventListener('DOMContentLoaded',function(){
+  var dtc=document.getElementById('dtc');if(!dtc)return;
+  new MutationObserver(function(){
+    if(dtc.querySelector('.pp-detail-badge'))return;
+    if(!dtc.children.length)return;
+    if(typeof players==='undefined'||!players.length)return;
+    var txt=dtc.textContent;
+    var j=players.find(function(p){return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);});
+    if(!j||!j.psychoProfil)return;
+    var wrap=document.createElement('div');wrap.className='pp-detail-badge';wrap.style.cssText='padding:6px 0 10px;';wrap.innerHTML=window.getPsychoBadge(j.psychoProfil);
+    var anchor=dtc.querySelector('.sec,.ptop,h2,h3')||dtc.firstElementChild;
+    if(anchor)anchor.insertAdjacentElement('afterend',wrap);else dtc.prepend(wrap);
+  }).observe(dtc,{childList:true});
+});
 
-  window.addEventListener('load', function() {
-    if (typeof wcl !== 'function') return;
-    const _wcl = wcl;
-    window.wcl = async function(b, k, d) {
-      if (d && Array.isArray(d.players)) {
-        const psychoVal = document.getElementById('ppsycho')?.value || null;
-        const eid = document.getElementById('peid')?.value || null;
-        let target = eid ? d.players.find(p => String(p.id) === String(eid)) : null;
-        if (!target) target = d.players[d.players.length - 1];
-        if (target) target.psychoProfil = psychoVal || null;
-      }
-      return _wcl.call(this, b, k, d);
-    };
-  });
-
-  document.addEventListener('DOMContentLoaded', function() {
-    const peid = document.getElementById('peid');
-    if (!peid) return;
-    let _lastEid = '';
-    setInterval(function() {
-      const current = peid.value;
-      if (current === _lastEid) return;
-      _lastEid = current;
-      if (current && typeof players !== 'undefined') {
-        const joueur = players.find(p => String(p.id) === String(current));
-        setPsychoProfil(joueur?.psychoProfil || '');
-      } else { resetPsychoProfil(); }
-    }, 150);
-  });
-
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('[onclick*="closeMod(\'m-pl\')"]')) setTimeout(resetPsychoProfil, 100);
-  });
+// RESET fermeture modale
+document.addEventListener('click',function(e){if(e.target.closest('[onclick*="closeMod(\'m-pl\')"]'))setTimeout(window.resetPsychoProfil,100);});
 })();
 </script>
 </body>
