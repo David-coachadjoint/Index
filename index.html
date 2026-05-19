@@ -2209,7 +2209,7 @@ document.addEventListener('DOMContentLoaded',function(){
 document.addEventListener('click',function(e){if(e.target.closest('[onclick*="closeMod(\'m-pl\')"]'))setTimeout(window.resetPsychoProfil,100);});
 })();
 </script>
- <!-- ═══ COMPÉTENCES DE POSTE — v2 (fix affichage fiche) ═══ -->
+<!-- ═══ COMPÉTENCES DE POSTE — v3 (fix save joueurs existants) ═══ -->
 <script>
 (function () {
   var POS_CAT = {
@@ -2298,21 +2298,61 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',inject);}else{inject();}
 
-  /* Sauvegarde */
+
+  /* ═══ HELPER : lire les compétences du formulaire ═══ */
+  function readFormCompetences(){
+    var inputs=document.querySelectorAll('#cposte-grid input[data-crit]');
+    if(!inputs.length)return null;
+    var comp={};
+    inputs.forEach(function(i){comp[i.dataset.crit]=parseInt(i.value);});
+    return comp;
+  }
+
+  /* ═══ HELPER : trouver le joueur cible (ID → nom/prénom → dernier) ═══ */
+  function findTarget(playersArr){
+    var eid=(document.getElementById('peid')||{}).value||'';
+    var t=null;
+    // 1. Matching par ID
+    if(eid) t=playersArr.find(function(p){return String(p.id)===String(eid);});
+    // 2. Fallback : matching par nom + prénom (formulaire)
+    if(!t){
+      var pnom=(document.getElementById('pnom')||{}).value||'';
+      var pprenom=(document.getElementById('pprenom')||{}).value||'';
+      if(pnom&&pprenom) t=playersArr.find(function(p){return p.nom===pnom&&p.prenom===pprenom;});
+    }
+    // 3. Dernier recours : dernier joueur (nouveau joueur)
+    if(!t) t=playersArr[playersArr.length-1];
+    return t;
+  }
+
+
+  /* ═══ FIX PRINCIPAL : hook capture-phase sur le bouton Sauvegarder ═══
+       Se déclenche AVANT savePl() → met à jour le joueur en mémoire directement.
+       Fonctionne même si le patch JSON.stringify échoue.                    */
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest('[onclick*="savePl"]');
+    if(!btn)return;
+    var comp=readFormCompetences();
+    if(!comp)return;
+    if(typeof players==='undefined'||!players.length)return;
+    var t=findTarget(players);
+    if(t)t.competencesPoste=comp;
+  },true); // true = phase capture → avant onclick
+
+
+  /* ═══ SAUVEGARDE — Patch JSON.stringify (filet de sécurité) ═══ */
   var _ps=JSON.stringify;
   JSON.stringify=function(v,r,sp){
     if(v&&typeof v==='object'&&!Array.isArray(v)&&Array.isArray(v.players)&&v.players.length>0){
-      var inputs=document.querySelectorAll('#cposte-grid input[data-crit]');
-      if(inputs.length>0){
-        var comp={};inputs.forEach(function(i){comp[i.dataset.crit]=parseInt(i.value);});
-        var eid=(document.getElementById('peid')||{}).value||'';
-        var t=eid?v.players.find(function(p){return String(p.id)===String(eid);}):null;
-        if(!t)t=v.players[v.players.length-1];
+      var comp=readFormCompetences();
+      if(comp){
+        var t=findTarget(v.players);
         if(t)t.competencesPoste=comp;
       }
     }
     return _ps.call(this,v,r,sp);
   };
+
 
   /* Restauration en édition */
   document.addEventListener('DOMContentLoaded',function(){
@@ -2334,11 +2374,11 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
     },200);
   });
 
-  /* ═══ FICHE DÉTAIL #dtc — version robuste avec triple retry ═══ */
+
+  /* Fiche détail #dtc — triple retry */
   document.addEventListener('DOMContentLoaded',function(){
     var dtc=document.getElementById('dtc');
     if(!dtc)return;
-
     function buildDetBlock(j){
       var cat=getCategory(j.poste);if(!cat)return null;
       var info=CAT_INFO[cat],criteria=CRITERIA[cat],vals=j.competencesPoste;
@@ -2359,32 +2399,23 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
         }).join('');
       return block;
     }
-
-    /* Fonction centrale — réessayable, idempotente */
     function tryInjectDetail(){
       if(!dtc.children.length)return;
-      if(dtc.querySelector('.cposte-det-block'))return;           // déjà injecté
-      if(typeof players==='undefined'||!players.length)return;   // données pas prêtes
+      if(dtc.querySelector('.cposte-det-block'))return;
+      if(typeof players==='undefined'||!players.length)return;
       var txt=dtc.textContent;
-      var j=players.find(function(p){
-        return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);
-      });
-      if(!j||!j.competencesPoste||!j.poste)return;  // pas de compétences enregistrées
+      var j=players.find(function(p){return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);});
+      if(!j||!j.competencesPoste||!j.poste)return;
       var block=buildDetBlock(j);
       if(block)dtc.appendChild(block);
     }
-
-    /* Observer : déclenche 3 essais échelonnés à chaque changement du contenu */
     new MutationObserver(function(){
-      // Nettoyer un éventuel bloc obsolète (changement de joueur)
-      var old=dtc.querySelector('.cposte-det-block');
-      if(old&&!dtc.contains(old))old.remove();
-      // Triple retry : 200ms, 800ms, 2500ms
       setTimeout(tryInjectDetail,200);
       setTimeout(tryInjectDetail,800);
       setTimeout(tryInjectDetail,2500);
     }).observe(dtc,{childList:true});
   });
+
 
   /* Cartes #pgrid */
   function injectCard(card){
