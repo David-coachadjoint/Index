@@ -2209,7 +2209,7 @@ document.addEventListener('DOMContentLoaded',function(){
 document.addEventListener('click',function(e){if(e.target.closest('[onclick*="closeMod(\'m-pl\')"]'))setTimeout(window.resetPsychoProfil,100);});
 })();
 </script>
-<!-- ═══ COMPÉTENCES DE POSTE — v3 (fix save joueurs existants) ═══ -->
+<!-- ═══ COMPÉTENCES DE POSTE — v4 (fetch intercept) ═══ -->
 <script>
 (function () {
   var POS_CAT = {
@@ -2299,56 +2299,73 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',inject);}else{inject();}
 
 
-  /* ═══ HELPER : lire les compétences du formulaire ═══ */
+  /* ═══ HELPERS ═══ */
   function readFormCompetences(){
     var inputs=document.querySelectorAll('#cposte-grid input[data-crit]');
     if(!inputs.length)return null;
-    var comp={};
-    inputs.forEach(function(i){comp[i.dataset.crit]=parseInt(i.value);});
+    var comp={};inputs.forEach(function(i){comp[i.dataset.crit]=parseInt(i.value);});
     return comp;
   }
 
-  /* ═══ HELPER : trouver le joueur cible (ID → nom/prénom → dernier) ═══ */
-  function findTarget(playersArr){
-    var eid=(document.getElementById('peid')||{}).value||'';
+  /* Récupère l'ID du joueur en cours d'édition depuis la variable JS de l'app OU depuis peid */
+  function getEditId(){
+    // 1. Variable interne de l'app (let editId)
+    try{ if(typeof editId!=='undefined'&&editId!==null) return String(editId); }catch(e){}
+    // 2. Champ caché peid
+    return (document.getElementById('peid')||{}).value||'';
+  }
+
+  /* Trouve le joueur cible : editId → nom/prénom → dernier (nouveau joueur) */
+  function findTarget(arr){
+    var eid=getEditId();
     var t=null;
-    // 1. Matching par ID
-    if(eid) t=playersArr.find(function(p){return String(p.id)===String(eid);});
-    // 2. Fallback : matching par nom + prénom (formulaire)
+    if(eid) t=arr.find(function(p){return String(p.id)===eid;});
     if(!t){
       var pnom=(document.getElementById('pnom')||{}).value||'';
-      var pprenom=(document.getElementById('pprenom')||{}).value||'';
-      if(pnom&&pprenom) t=playersArr.find(function(p){return p.nom===pnom&&p.prenom===pprenom;});
+      var ppr=(document.getElementById('pprenom')||{}).value||'';
+      if(pnom&&ppr) t=arr.find(function(p){return p.nom===pnom&&p.prenom===ppr;});
     }
-    // 3. Dernier recours : dernier joueur (nouveau joueur)
-    if(!t) t=playersArr[playersArr.length-1];
+    if(!t) t=arr[arr.length-1];
     return t;
   }
 
+  /* ═══ SAUVEGARDE PRINCIPALE : Interception fetch JSONBin ═══
+     Agit AU NIVEAU RÉSEAU, indépendamment de JSON.stringify.
+     Parse le body déjà sérialisé, injecte competencesPoste, re-sérialise. */
+  var _origFetch=window.fetch;
+  window.fetch=function(url,opts){
+    if(typeof url==='string' && url.indexOf('jsonbin.io')>=0 &&
+       opts && opts.method==='PUT' && opts.body){
+      try{
+        var body=JSON.parse(opts.body);
+        if(body && Array.isArray(body.players) && body.players.length>0){
+          var comp=readFormCompetences();
+          if(comp){
+            var t=findTarget(body.players);
+            if(t){
+              t.competencesPoste=comp;
+              // Aussi mettre à jour l'objet en mémoire locale
+              if(typeof players!=='undefined'){
+                var eid=getEditId();
+                var local=eid?players.find(function(p){return String(p.id)===eid;}):null;
+                if(!local)local=players[players.length-1];
+                if(local)local.competencesPoste=comp;
+              }
+              opts=Object.assign({},opts,{body:JSON.stringify(body)});
+            }
+          }
+        }
+      }catch(e){}
+    }
+    return _origFetch.apply(this,arguments);
+  };
 
-  /* ═══ FIX PRINCIPAL : hook capture-phase sur le bouton Sauvegarder ═══
-       Se déclenche AVANT savePl() → met à jour le joueur en mémoire directement.
-       Fonctionne même si le patch JSON.stringify échoue.                    */
-  document.addEventListener('click',function(e){
-    var btn=e.target.closest('[onclick*="savePl"]');
-    if(!btn)return;
-    var comp=readFormCompetences();
-    if(!comp)return;
-    if(typeof players==='undefined'||!players.length)return;
-    var t=findTarget(players);
-    if(t)t.competencesPoste=comp;
-  },true); // true = phase capture → avant onclick
-
-
-  /* ═══ SAUVEGARDE — Patch JSON.stringify (filet de sécurité) ═══ */
+  /* Filet de sécurité : patch JSON.stringify (garde la chaîne intacte) */
   var _ps=JSON.stringify;
   JSON.stringify=function(v,r,sp){
     if(v&&typeof v==='object'&&!Array.isArray(v)&&Array.isArray(v.players)&&v.players.length>0){
       var comp=readFormCompetences();
-      if(comp){
-        var t=findTarget(v.players);
-        if(t)t.competencesPoste=comp;
-      }
+      if(comp){var t=findTarget(v.players);if(t)t.competencesPoste=comp;}
     }
     return _ps.call(this,v,r,sp);
   };
@@ -2361,13 +2378,17 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
       var ppo=document.getElementById('ppo'),peid=document.getElementById('peid');
       if(!ppo||!peid)return;
       var cp=ppo.value,ce=peid.value;
-      if(cp===_wp&&ce===_we)return;
-      var posChg=cp!==_wp,eidChg=ce!==_we;
-      _wp=cp;_we=ce;
+      // Aussi surveiller editId
+      var appEid='';
+      try{if(typeof editId!=='undefined'&&editId!==null)appEid=String(editId);}catch(e){}
+      var ceEffective=ce||appEid;
+      if(cp===_wp&&ceEffective===_we)return;
+      var posChg=cp!==_wp,eidChg=ceEffective!==_we;
+      _wp=cp;_we=ceEffective;
       if(!cp){showCategory(null);return;}
       var saved={};
-      if(ce&&typeof players!=='undefined'){
-        var j=players.find(function(p){return String(p.id)===String(ce);});
+      if(ceEffective&&typeof players!=='undefined'){
+        var j=players.find(function(p){return String(p.id)===ceEffective;});
         if(j&&j.competencesPoste)saved=j.competencesPoste;
       }
       if(posChg||eidChg)showCategory(getCategory(cp),saved);
