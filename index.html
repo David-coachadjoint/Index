@@ -2482,5 +2482,150 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
   });
 })();
 </script>
+  <!-- ═══ COMPÉTENCES DE POSTE — RAPPORT JOUEUR ═══ -->
+<script>
+(function(){
+
+  var POS_CAT={
+    'GK-Gardien moderne':'GK','GK-Gardien fixe':'GK',
+    'DEF-Défenseur central':'DEF','DEF-DC Relanceur':'DEF',
+    'DEF-Latéral moderne':'LAT','DEF-Latéral fixe':'LAT','DEF-Latéral offensif':'LAT',
+    'MIL-Milieu défensif':'MIL','MIL-Récupérateur':'MIL','MIL-Sentinelle':'MIL',
+    'MIL-Axial':'MIL','MIL-Meneur avancé':'MIL','MIL-Complet':'MIL',
+    'ATT-Pivot':'ATT','ATT-16m':'ATT',
+    'ATT-Excentré':'LAT','ATT-Ailier':'LAT',
+    'ATT-Complet':'ATT','ATT-Profondeur':'ATT'
+  };
+  var CAT_INFO={
+    GK:{ico:'🧤',label:'Gardien de but',   color:'#2563eb'},
+    DEF:{ico:'🛡️', label:'Défenseur central',color:'#16a34a'},
+    MIL:{ico:'⚙️', label:'Milieu de terrain',color:'#7c3aed'},
+    LAT:{ico:'🚀',label:'Latéral / Ailier', color:'#d97706'},
+    ATT:{ico:'🎯',label:'Attaquant',        color:'#dc2626'}
+  };
+  var CRITERIA={
+    GK:['Jeu au pied court','Jeu au pied long','Sorties aériennes','Réflexes / arrêts','1v1 gardien','Placement / lecture du jeu','Communication défensive','Gestion de la profondeur','Relance sous pression','Mental / concentration'],
+    DEF:['Duel défensif 1v1','Jeu aérien','Marquage individuel','Couverture / profondeur','Anticipation / lecture','Relance courte','Relance longue','Sortie de balle sous pression','Gestion des espaces','Leadership défensif'],
+    MIL:['Vision du jeu','Orientation du jeu (scan)','Qualité de passe courte','Qualité de passe longue','Pressing / contre-pressing','Résistance à la pression','Création offensive','Projection vers l\'avant','Gestion du tempo','Volume de course'],
+    LAT:['Duels 1v1 défensifs','Projection offensive','Centres','Qualité de passe','Repli défensif','Gestion de la profondeur','Endurance / répétition efforts','Timing de montée','Jeu intérieur / extérieur','Coordination avec ailier'],
+    ATT:['Finition','Appels de balle','Jeu dos au but','1v1 offensif','Sens du placement','Jeu de tête offensif','Pressing offensif','Création d\'espaces','Prise de décision','Mental de buteur']
+  };
+  function getCat(v){return v?(POS_CAT[v]||null):null;}
+
+  /* Trouve le joueur à partir du contenu visible du rapport */
+  function findPlayerInPdf(overlay){
+    if(typeof players==='undefined'||!players.length)return null;
+    var h1=overlay.querySelector('.pdf-hdr h1');
+    if(!h1)return null;
+    var txt=h1.textContent.toLowerCase();
+    return players.find(function(p){
+      return p.nom&&p.prenom&&
+             txt.includes(p.prenom.toLowerCase())&&
+             txt.includes(p.nom.toLowerCase());
+    })||null;
+  }
+
+  /* Construit la section PDF compétences */
+  function buildSection(j){
+    if(!j||!j.competencesPoste||!j.poste)return null;
+    var cat=getCat(j.poste);if(!cat)return null;
+    var info=CAT_INFO[cat],criteria=CRITERIA[cat],vals=j.competencesPoste;
+
+    var sum=0,cnt=0;
+    criteria.forEach(function(c){if(vals[c]!==undefined){sum+=vals[c];cnt++;}});
+    var avg=cnt?Math.round(sum/cnt*10)/10:0;
+    var pctAvg=avg*10;
+
+    /* Barres */
+    var bars=criteria.map(function(c){
+      var v=vals[c]!==undefined?vals[c]:0,pct=v*10;
+      return '<div class="pdf-br">' +
+        '<div class="pdf-brl">'+c+'</div>' +
+        '<div class="pdf-brt"><div class="pdf-brf" style="width:'+pct+'%;background:'+info.color+'"></div></div>' +
+        '<div class="pdf-brv" style="color:'+info.color+';font-weight:700">'+v+'</div>' +
+      '</div>';
+    }).join('');
+
+    var sec=document.createElement('div');
+    sec.className='pdf-sec cposte-pdf-block';
+    sec.innerHTML=
+      '<h3>'+info.ico+' Compétences de poste — '+info.label+'</h3>'+
+      /* Moyenne en haut */
+      '<div style="display:flex;align-items:center;gap:14px;padding:10px 0 14px;border-bottom:1px solid #f1f5f9;margin-bottom:12px">'+
+        '<div style="text-align:center;min-width:56px">'+
+          '<div class="pdf-n" style="color:'+info.color+'">'+avg+'</div>'+
+          '<div class="pdf-l">/ 10</div>'+
+        '</div>'+
+        '<div style="flex:1">'+
+          '<div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden">'+
+            '<div style="width:'+pctAvg+'%;height:100%;background:'+info.color+';border-radius:4px"></div>'+
+          '</div>'+
+          '<div style="font-size:10px;color:#94a3b8;margin-top:4px">Moyenne globale poste</div>'+
+        '</div>'+
+      '</div>'+
+      /* 10 critères */
+      bars;
+    return sec;
+  }
+
+  /* Injecte dans le rapport — avant le footer .pdf-ft */
+  function injectIntoPdf(overlay){
+    if(!overlay)return;
+    /* Nettoyer ancienne injection */
+    overlay.querySelectorAll('.cposte-pdf-block').forEach(function(b){b.remove();});
+    /* Attendre que le contenu soit prêt */
+    var content=overlay.querySelector('.pdf-content');
+    if(!content||!content.children.length)return;
+    var j=findPlayerInPdf(overlay);
+    if(!j)return;
+    var sec=buildSection(j);
+    if(!sec)return;
+    var ft=content.querySelector('.pdf-ft');
+    if(ft)content.insertBefore(sec,ft);
+    else content.appendChild(sec);
+  }
+
+  /* Timer de debounce */
+  var _t=null;
+  function scheduleInject(overlay){
+    clearTimeout(_t);
+    _t=setTimeout(function(){injectIntoPdf(overlay);},250);
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){
+
+    /* Cas 1 : pdf-overlay ajouté dynamiquement au body */
+    new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        m.addedNodes.forEach(function(node){
+          if(node.nodeType!==1)return;
+          if(node.id==='pdf-overlay'){
+            /* Observer le contenu de l'overlay */
+            new MutationObserver(function(){
+              scheduleInject(node);
+            }).observe(node,{childList:true,subtree:true});
+            /* Premiers essais */
+            setTimeout(function(){injectIntoPdf(node);},300);
+            setTimeout(function(){injectIntoPdf(node);},900);
+          }
+        });
+      });
+    }).observe(document.body,{childList:true});
+
+    /* Cas 2 : body prend la classe pdf-mode (overlay déjà présent mais affiché) */
+    new MutationObserver(function(){
+      if(document.body.classList.contains('pdf-mode')){
+        var ov=document.getElementById('pdf-overlay');
+        if(ov){
+          setTimeout(function(){injectIntoPdf(ov);},300);
+          setTimeout(function(){injectIntoPdf(ov);},900);
+        }
+      }
+    }).observe(document.body,{attributes:true,attributeFilter:['class']});
+
+  });
+
+})();
+</script>
 </body>
 </html>
