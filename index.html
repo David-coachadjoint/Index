@@ -1603,6 +1603,8 @@ function renderData(){
   html+=renderDataContext(ms);
   // Impact remplaçants
   html+=renderDataSubstitutes(ms);
+  // Analyse tactique data scientist
+  html+=renderDataTacticalAnalysis(ms);
   el.innerHTML=html;
 }
 
@@ -1765,6 +1767,313 @@ function renderDataSubstitutes(ms){
   html+='</div>';
   return html;
 }
+// ═══════ ANALYSE TACTIQUE — DATA SCIENTIST ═══════
+function renderDataTacticalAnalysis(ms){
+  if(!ms||ms.length<2) return '';
+  var scoredMs=ms.filter(function(m){ return m.scoreUR!=null&&m.scoreAdv!=null; });
+  if(!scoredMs.length) return '';
+  function res(m){ return m.scoreUR>m.scoreAdv?'w':m.scoreUR===m.scoreAdv?'d':'l'; }
+  function pts(m){ return m.scoreUR>m.scoreAdv?3:m.scoreUR===m.scoreAdv?1:0; }
+  function ppm(arr){ return arr.length?(arr.reduce(function(a,m){return a+pts(m);},0)/arr.length).toFixed(2):'0'; }
+  function winPct(arr){ return arr.length?Math.round(arr.filter(function(m){return res(m)==='w';}).length/arr.length*100):0; }
+  function statBox(arr){
+    var w=arr.filter(function(m){return res(m)==='w';}).length;
+    var d=arr.filter(function(m){return res(m)==='d';}).length;
+    var l=arr.filter(function(m){return res(m)==='l';}).length;
+    var p=parseFloat(ppm(arr));
+    var c=p>=2?'#68d391':p>=1.3?'#63b3ed':p>=0.8?'#f6c90e':'#fc8181';
+    return {w:w,d:d,l:l,ppm:ppm(arr),ppmColor:c,winPct:winPct(arr)};
+  }
+  var html='';
+
+  // ── 1. PERFORMANCE PAR SYSTÈME ──────────────────────────────
+  var fStats={};
+  scoredMs.forEach(function(m){
+    var f=m.formation||'?';
+    if(!fStats[f]) fStats[f]=[];
+    fStats[f].push(m);
+  });
+  var fList=Object.entries(fStats).sort(function(a,b){return b[1].length-a[1].length;});
+  var bestF=fList.slice().sort(function(a,b){return parseFloat(ppm(b[1]))-parseFloat(ppm(a[1]));})[0];
+  var worstF=fList.slice().sort(function(a,b){return parseFloat(ppm(a[1]))-parseFloat(ppm(b[1]));})[0];
+
+  html+='<div class="sec" style="border-left:3px solid #805ad5"><div class="stit" style="color:#a78bfa">📊 Analyse Tactique — Data Scientist</div>';
+  html+='<div style="font-size:12px;color:#718096;margin-bottom:0">Analyse de '+scoredMs.length+' match'+(scoredMs.length>1?'s':'')+' avec résultat · Structures · Compositions · Profils · Recommandations</div></div>';
+
+  html+='<div class="sec"><div class="stit">🗺 Efficacité par système de jeu</div>';
+  html+='<div class="tw"><table><thead><tr><th>Système</th><th>Matchs</th><th>V%</th><th>V/N/D</th><th>Pts/M</th><th>Buts</th></tr></thead><tbody>';
+  fList.forEach(function(e){
+    var f=e[0],arr=e[1],s=statBox(arr);
+    var best=bestF&&bestF[0]===f,worst=worstF&&worstF[0]===f&&fList.length>1;
+    html+='<tr>';
+    html+='<td><strong style="color:'+(best?'#68d391':worst?'#fc8181':'#e2e8f0')+'">'+f+'</strong>'+(best?' <span style="font-size:9px;background:#276749;color:#fff;padding:1px 5px;border-radius:8px">MEILLEUR</span>':worst?' <span style="font-size:9px;background:#742a2a;color:#fff;padding:1px 5px;border-radius:8px">MOINS BON</span>':'')+'</td>';
+    html+='<td>'+arr.length+'</td>';
+    html+='<td><strong style="color:'+s.ppmColor+'">'+s.winPct+'%</strong></td>';
+    html+='<td><span style="color:#68d391">'+s.w+'</span>/<span style="color:#f6c90e">'+s.d+'</span>/<span style="color:#fc8181">'+s.l+'</span></td>';
+    html+='<td style="color:'+s.ppmColor+';font-weight:700">'+s.ppm+'</td>';
+    var bg=arr.reduce(function(a,m){return a+(m.scoreUR||0);},0);
+    var bc=arr.reduce(function(a,m){return a+(m.scoreAdv||0);},0);
+    html+='<td style="color:#718096">'+bg+':'+bc+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  if(bestF&&fList.length>1){
+    var bs=statBox(bestF[1]);
+    html+='<div style="background:rgba(39,103,73,.12);border-left:3px solid #38a169;padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:#e2e8f0;margin-top:11px">✅ <b>Système le plus efficace : '+bestF[0]+'</b> — '+bs.winPct+'% de victoires · '+bs.ppm+' pts/match sur '+bestF[1].length+' match'+(bestF[1].length>1?'s':'')+'</div>';
+  }
+  html+='</div>';
+
+  // ── 2. DUELS TACTIQUES (notre système vs système adverse) ──
+  var matchsWithAdv=scoredMs.filter(function(m){ return m.advFormation&&m.advFormation.trim(); });
+  if(matchsWithAdv.length>=2){
+    var duelStats={};
+    matchsWithAdv.forEach(function(m){
+      var key=(m.formation||'?')+' vs '+m.advFormation;
+      if(!duelStats[key]) duelStats[key]=[];
+      duelStats[key].push(m);
+    });
+    var duelList=Object.entries(duelStats).sort(function(a,b){return b[1].length-a[1].length;}).slice(0,8);
+    html+='<div class="sec"><div class="stit">⚔️ Duels tactiques — Nous vs Adversaire</div>';
+    html+='<div style="font-size:11px;color:#718096;margin-bottom:9px">Performance de notre système face aux structures adverses identifiées</div>';
+    html+='<div class="tw"><table><thead><tr><th>Notre schéma vs Adv</th><th>M</th><th>V%</th><th>V/N/D</th><th>Pts/M</th></tr></thead><tbody>';
+    duelList.forEach(function(e){
+      var key=e[0],arr=e[1],s=statBox(arr);
+      html+='<tr>';
+      html+='<td style="font-size:12px"><strong>'+key+'</strong></td>';
+      html+='<td>'+arr.length+'</td>';
+      html+='<td style="font-weight:700;color:'+s.ppmColor+'">'+s.winPct+'%</td>';
+      html+='<td><span style="color:#68d391">'+s.w+'</span>/<span style="color:#f6c90e">'+s.d+'</span>/<span style="color:#fc8181">'+s.l+'</span></td>';
+      html+='<td style="color:'+s.ppmColor+';font-weight:700">'+s.ppm+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+    // Best matchup
+    var bestDuel=duelList.filter(function(e){return e[1].length>=2;}).sort(function(a,b){return parseFloat(ppm(b[1]))-parseFloat(ppm(a[1]));})[0];
+    var worstDuel=duelList.filter(function(e){return e[1].length>=2;}).sort(function(a,b){return parseFloat(ppm(a[1]))-parseFloat(ppm(b[1]));})[0];
+    if(bestDuel) html+='<div style="background:rgba(39,103,73,.12);border-left:3px solid #38a169;padding:8px 12px;border-radius:0 8px 8px 0;font-size:12px;margin-top:8px">✅ Meilleur duel : <b>'+bestDuel[0]+'</b> — '+statBox(bestDuel[1]).winPct+'% victoires</div>';
+    if(worstDuel&&worstDuel[0]!==bestDuel[0]) html+='<div style="background:rgba(197,48,48,.08);border-left:3px solid #e53e3e;padding:8px 12px;border-radius:0 8px 8px 0;font-size:12px;margin-top:6px">⚠️ Duel difficile : <b>'+worstDuel[0]+'</b> — '+statBox(worstDuel[1]).winPct+'% victoires</div>';
+    html+='</div>';
+  }
+
+  // ── 3. DOMICILE vs EXTÉRIEUR PAR SYSTÈME ──────────────────
+  var homeMs=scoredMs.filter(function(m){return m.lieu==='Domicile';});
+  var awayMs=scoredMs.filter(function(m){return m.lieu==='Extérieur';});
+  if(homeMs.length>=2||awayMs.length>=2){
+    html+='<div class="sec"><div class="stit">🏟 Système optimal selon le contexte</div>';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    [['🏠 Domicile',homeMs,'#63b3ed'],['🚌 Extérieur',awayMs,'#a78bfa']].forEach(function(tuple){
+      var lbl=tuple[0],arr=tuple[1],col=tuple[2];
+      if(arr.length<2){html+='<div style="background:#0e1a2e;border:1px solid #2d4a7a;border-radius:9px;padding:13px;color:#718096;font-size:12px">'+lbl+'<br>Données insuffisantes</div>';return;}
+      var fCtx={};
+      arr.forEach(function(m){var f=m.formation||'?';if(!fCtx[f])fCtx[f]=[];fCtx[f].push(m);});
+      var best=Object.entries(fCtx).filter(function(e){return e[1].length>=1;}).sort(function(a,b){return parseFloat(ppm(b[1]))-parseFloat(ppm(a[1]));})[0];
+      var s=statBox(arr);
+      html+='<div style="background:#0e1a2e;border:1px solid '+col+'40;border-radius:9px;padding:13px">';
+      html+='<div style="font-size:12px;font-weight:700;color:'+col+';margin-bottom:8px">'+lbl+' ('+arr.length+' matchs)</div>';
+      html+='<div style="font-size:13px;color:#cbd5e0;margin-bottom:6px"><b>'+s.w+'V '+s.d+'N '+s.l+'D</b> · '+s.winPct+'% victoires · '+s.ppm+' pts/M</div>';
+      if(best) html+='<div style="font-size:11px;color:'+col+'">Meilleur système : <b>'+best[0]+'</b> ('+ppm(best[1])+' pts/M · '+best[1].length+' match'+(best[1].length>1?'s':'')+')</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  }
+
+  // ── 4. PROFILS QUI FONT LA DIFFÉRENCE ─────────────────────
+  var pMap={};
+  players.forEach(function(p){ pMap[p.id]=p; });
+  // Impact par profil PF
+  var pfPerf={'Spécialiste':[],'Double':[],'Triple':[],'Complet':[],'Polyvalent':[]};
+  scoredMs.forEach(function(m){
+    var tids=Object.values(m.tit||{}).filter(Boolean);
+    tids.forEach(function(id){
+      var pl=pMap[id];
+      if(pl&&pl.profil&&pfPerf[pl.profil]!==undefined){
+        // Only count once per match per profile type
+        if(!pfPerf[pl.profil]._matchIds) pfPerf[pl.profil]._matchIds={};
+        if(!pfPerf[pl.profil]._matchIds[m.id]){ pfPerf[pl.profil]._matchIds[m.id]=true; pfPerf[pl.profil].push(m); }
+      }
+    });
+  });
+  var pfList=Object.entries(pfPerf).filter(function(e){return e[1].length>=2;}).sort(function(a,b){return parseFloat(ppm(b[1]))-parseFloat(ppm(a[1]));});
+  if(pfList.length>=2){
+    html+='<div class="sec"><div class="stit">🏷 Impact des profils PF sur les résultats</div>';
+    html+='<div style="font-size:11px;color:#718096;margin-bottom:9px">Performance quand au moins un joueur de ce profil est titulaire</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px">';
+    pfList.forEach(function(e){
+      var pf=e[0],arr=e[1],s=statBox(arr);
+      var ico=pf==='Spécialiste'?'⚡':pf==='Double'?'🔄':pf==='Triple'?'🌀':pf==='Complet'?'⭐':'🎯';
+      html+='<div style="background:#2d3748;border-radius:9px;padding:11px;text-align:center;border-top:3px solid '+s.ppmColor+'">';
+      html+='<div style="font-size:20px">'+ico+'</div>';
+      html+='<div style="font-size:12px;font-weight:700;color:#e2e8f0;margin:4px 0">'+pf+'</div>';
+      html+='<div style="font-size:20px;font-weight:900;color:'+s.ppmColor+'">'+s.winPct+'%</div>';
+      html+='<div style="font-size:10px;color:#718096">'+s.w+'V '+s.d+'N '+s.l+'D · '+arr.length+' matchs</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  }
+
+  // ── 5. ASSOCIATIONS DE JOUEURS ─────────────────────────────
+  var pairStats={};
+  scoredMs.forEach(function(m){
+    var tids=Object.values(m.tit||{}).filter(Boolean);
+    for(var i=0;i<tids.length;i++){
+      for(var j=i+1;j<tids.length;j++){
+        var key=[tids[i],tids[j]].sort().join('|');
+        if(!pairStats[key]) pairStats[key]=[];
+        pairStats[key].push(m);
+      }
+    }
+  });
+  var topPairs=Object.entries(pairStats).filter(function(e){return e[1].length>=3;}).sort(function(a,b){return parseFloat(ppm(b[1]))-parseFloat(ppm(a[1]));}).slice(0,6);
+  if(topPairs.length>=2){
+    html+='<div class="sec"><div class="stit">👥 Meilleures associations de joueurs</div>';
+    html+='<div style="font-size:11px;color:#718096;margin-bottom:9px">Duos les plus efficaces ensemble (min. 3 matchs)</div>';
+    html+='<div class="tw"><table><thead><tr><th>Association</th><th>Matchs</th><th>V%</th><th>V/N/D</th><th>Pts/M</th></tr></thead><tbody>';
+    topPairs.forEach(function(e){
+      var ids=e[0].split('|'),arr=e[1],s=statBox(arr);
+      var p1=pMap[ids[0]],p2=pMap[ids[1]];
+      if(!p1||!p2) return;
+      html+='<tr>';
+      html+='<td style="font-size:12px"><b>'+p1.prenom+' '+p1.nom.charAt(0)+'.</b> + <b>'+p2.prenom+' '+p2.nom.charAt(0)+'.</b></td>';
+      html+='<td>'+arr.length+'</td>';
+      html+='<td style="font-weight:700;color:'+s.ppmColor+'">'+s.winPct+'%</td>';
+      html+='<td><span style="color:#68d391">'+s.w+'</span>/<span style="color:#f6c90e">'+s.d+'</span>/<span style="color:#fc8181">'+s.l+'</span></td>';
+      html+='<td style="color:'+s.ppmColor+';font-weight:700">'+s.ppm+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div></div>';
+  }
+
+  // ── 6. TENDANCES & SCHÉMAS RÉCURRENTS ─────────────────────
+  // Série en cours
+  var recent=scoredMs.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+  var streak=0,streakType='';
+  for(var i=recent.length-1;i>=0;i--){
+    var r=res(recent[i]);
+    if(i===recent.length-1){streakType=r;streak=1;}
+    else if(r===streakType) streak++;
+    else break;
+  }
+  // Derniers 5 matchs
+  var last5=recent.slice(-5);
+  var l5pts=last5.reduce(function(a,m){return a+pts(m);},0);
+  var l5wPct=winPct(last5);
+  // Forme récente vs forme générale
+  var globalWPct=winPct(scoredMs);
+  var formeTrend=l5wPct>globalWPct+10?'🔥 En forme':l5wPct<globalWPct-10?'📉 En baisse':'➡️ Stable';
+
+  html+='<div class="sec"><div class="stit">📈 Tendances & Schémas récurrents</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">';
+  // Série en cours
+  html+='<div style="background:#2d3748;border-radius:9px;padding:13px">';
+  html+='<div style="font-size:11px;color:#718096;margin-bottom:5px;text-transform:uppercase">Série en cours</div>';
+  var sCol=streakType==='w'?'#68d391':streakType==='d'?'#f6c90e':'#fc8181';
+  var sLbl=streakType==='w'?'victoire'+(streak>1?'s victories':''):streakType==='d'?'nul'+(streak>1?'s':''):'défaite'+(streak>1?'s':'');
+  html+='<div style="font-size:28px;font-weight:900;color:'+sCol+'">'+streak+'</div>';
+  html+='<div style="font-size:12px;color:'+sCol+'">'+sLbl+' consécutive'+(streak>1?'s':'')+'</div>';
+  html+='</div>';
+  // Forme 5 derniers matchs
+  html+='<div style="background:#2d3748;border-radius:9px;padding:13px">';
+  html+='<div style="font-size:11px;color:#718096;margin-bottom:5px;text-transform:uppercase">5 derniers matchs</div>';
+  html+='<div style="display:flex;gap:4px;margin-bottom:6px">';
+  last5.forEach(function(m){ var r=res(m); html+='<div style="width:24px;height:24px;border-radius:4px;background:'+(r==='w'?'#276749':r==='d'?'#744210':'#742a2a')+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">'+(r==='w'?'V':r==='d'?'N':'D')+'</div>'; });
+  html+='</div>';
+  html+='<div style="font-size:12px;color:#e2e8f0">'+l5pts+' pts · '+l5wPct+'% victoires</div>';
+  html+='<div style="font-size:11px;color:#718096;margin-top:3px">'+formeTrend+' (moy. générale : '+globalWPct+'%)</div>';
+  html+='</div></div>';
+  // Clean sheets & scoring streaks
+  var csMs=scoredMs.filter(function(m){return m.scoreAdv===0;});
+  var scMs=scoredMs.filter(function(m){return m.scoreUR>0;});
+  var bigWins=scoredMs.filter(function(m){return m.scoreUR-m.scoreAdv>=3;});
+  html+='<div style="display:flex;gap:9px;flex-wrap:wrap">';
+  html+='<div style="background:#0e1a2e;border:1px solid #2d4a7a;border-radius:8px;padding:9px 13px;font-size:12px"><span style="color:#68d391;font-weight:700">'+csMs.length+'</span> clean sheet'+(csMs.length>1?'s':'')+' ('+Math.round(csMs.length/scoredMs.length*100)+'%)</div>';
+  html+='<div style="background:#0e1a2e;border:1px solid #2d4a7a;border-radius:8px;padding:9px 13px;font-size:12px"><span style="color:#63b3ed;font-weight:700">'+scMs.length+'</span> matchs avec but ('+Math.round(scMs.length/scoredMs.length*100)+'%)</div>';
+  if(bigWins.length) html+='<div style="background:#0e1a2e;border:1px solid #2d4a7a;border-radius:8px;padding:9px 13px;font-size:12px"><span style="color:#f6c90e;font-weight:700">'+bigWins.length+'</span> large victoire'+(bigWins.length>1?'s':'')+' (≥3 buts d\'écart)</div>';
+  html+='</div></div>';
+
+  // ── 7. INDICE DE COHÉRENCE TACTIQUE /100 ──────────────────
+  var nForm=Object.keys(fStats).length;
+  var mostUsedF=fList[0];
+  var mostUsedPct=mostUsedF?Math.round(mostUsedF[1].length/scoredMs.length*100):0;
+  // Critères
+  var cWinRate=Math.round(globalWPct*0.30);                              // 30pts
+  var cConsistency=Math.round(mostUsedPct*0.20);                          // 20pts — 1 formation dominante
+  var cBalance=function(){ var bg=scoredMs.reduce(function(a,m){return a+(m.scoreUR||0);},0); var bc=scoredMs.reduce(function(a,m){return a+(m.scoreAdv||0);},0); var ratio=bc>0?bg/bc:2; return Math.min(20,Math.round(ratio*10)); }(); // 20pts
+  var cForm=l5pts>=10?20:l5pts>=7?15:l5pts>=4?10:5;                      // 20pts — forme récente
+  var cHome=homeMs.length?Math.round(winPct(homeMs)*0.10):5;              // 10pts
+  var cohIdx=Math.min(100,Math.max(0,cWinRate+cConsistency+cBalance+cForm+cHome));
+  var cohCol=cohIdx>=75?'#38a169':cohIdx>=55?'#f59e0b':'#e53e3e';
+  var cohLbl=cohIdx>=80?'Équipe très cohérente tactiquement':cohIdx>=65?'Bonne cohérence — quelques axes à consolider':cohIdx>=50?'Cohérence partielle — des marges de progression':cohIdx>=35?'Instabilité tactique — révision nécessaire':'Manque de cohérence structurelle';
+
+  html+='<div class="sec"><div class="stit">📐 Indice de cohérence tactique</div>';
+  html+='<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">';
+  html+='<div style="position:relative;width:110px;height:110px;flex-shrink:0">';
+  html+='<svg viewBox="0 0 36 36" width="110" height="110"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2d3748" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="'+cohCol+'" stroke-width="3" stroke-dasharray="'+cohIdx+', 100"/><text x="18" y="20.35" text-anchor="middle" font-size="8" font-weight="900" fill="'+cohCol+'">'+cohIdx+'</text><text x="18" y="25.5" text-anchor="middle" font-size="3.5" fill="#718096">/100</text></svg>';
+  html+='</div>';
+  html+='<div style="flex:1">';
+  html+='<div style="font-size:16px;font-weight:800;color:'+cohCol+';margin-bottom:8px">'+cohLbl+'</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:7px">';
+  html+='<span style="background:#2d3748;border-radius:6px;padding:4px 9px;font-size:11px">🏆 Win rate : <b>'+cWinRate+'/30</b></span>';
+  html+='<span style="background:#2d3748;border-radius:6px;padding:4px 9px;font-size:11px">🗺 Constance : <b>'+cConsistency+'/20</b></span>';
+  html+='<span style="background:#2d3748;border-radius:6px;padding:4px 9px;font-size:11px">⚖️ Équilibre : <b>'+cBalance+'/20</b></span>';
+  html+='<span style="background:#2d3748;border-radius:6px;padding:4px 9px;font-size:11px">📈 Forme récente : <b>'+cForm+'/20</b></span>';
+  html+='<span style="background:#2d3748;border-radius:6px;padding:4px 9px;font-size:11px">🏠 Dom. : <b>'+cHome+'/10</b></span>';
+  html+='</div></div></div></div>';
+
+  // ── 8. RECOMMANDATIONS AUTOMATIQUES ───────────────────────
+  var recs=[];
+  // Meilleur système global
+  if(bestF&&bestF[1].length>=2){
+    var bs2=statBox(bestF[1]);
+    recs.push({ico:'🗺',col:'#38a169',title:'Système à privilégier',body:'Utilisez le <b>'+bestF[0]+'</b> en priorité — '+bs2.winPct+'% de victoires sur '+bestF[1].length+' matchs ('+bs2.ppm+' pts/match).'});
+  }
+  // Domicile
+  if(homeMs.length>=2){
+    var bestHomeF=Object.entries(fStats).filter(function(e){return e[1].filter(function(m){return m.lieu==='Domicile';}).length>=1;}).map(function(e){return [e[0],e[1].filter(function(m){return m.lieu==='Domicile';})];}).sort(function(a,b){return parseFloat(ppm(b[1]))-parseFloat(ppm(a[1]));})[0];
+    if(bestHomeF) recs.push({ico:'🏠',col:'#63b3ed',title:'Domicile',body:'À domicile, <b>'+bestHomeF[0]+'</b> est votre système le plus efficace ('+ppm(bestHomeF[1])+' pts/match · '+bestHomeF[1].length+' match'+(bestHomeF[1].length>1?'s':'')+')'});
+  }
+  // Extérieur
+  if(awayMs.length>=2){
+    var bestAwayF=Object.entries(fStats).filter(function(e){return e[1].filter(function(m){return m.lieu==='Extérieur';}).length>=1;}).map(function(e){return [e[0],e[1].filter(function(m){return m.lieu==='Extérieur';})];}).sort(function(a,b){return parseFloat(ppm(b[1]))-parseFloat(ppm(a[1]));})[0];
+    if(bestAwayF) recs.push({ico:'🚌',col:'#a78bfa',title:'Extérieur',body:'À l\'extérieur, <b>'+bestAwayF[0]+'</b> donne les meilleurs résultats ('+ppm(bestAwayF[1])+' pts/match · '+bestAwayF[1].length+' match'+(bestAwayF[1].length>1?'s':'')+')'});
+  }
+  // Forme récente
+  if(formeTrend==='🔥 En forme') recs.push({ico:'🔥',col:'#f59e0b',title:'Dynamique positive',body:'Vous êtes en forme ! Maintenez le système et la composition des '+Math.min(streak,3)+' derniers matchs gagnants.'});
+  else if(formeTrend==='📉 En baisse') recs.push({ico:'📉',col:'#fc8181',title:'Baisse de forme',body:'Résultats en baisse sur les 5 derniers matchs ('+l5wPct+'% vs '+globalWPct+'% en général). Envisagez un changement de système ou de composition clé.'});
+  // Profil qui booste
+  if(pfList.length>=2){
+    var topPf=pfList[0];
+    recs.push({ico:'⭐',col:'#f6c90e',title:'Profil à titulariser',body:'Les joueurs de profil <b>'+topPf[0]+'</b> élèvent vos performances ('+statBox(topPf[1]).winPct+'% victoires quand ils jouent). Priorisez leur titularisation.'});
+  }
+  // Clean sheets
+  if(csMs.length/scoredMs.length<0.25&&scoredMs.length>=5) recs.push({ico:'🛡️',col:'#718096',title:'Renforcer la défense',body:'Seulement '+Math.round(csMs.length/scoredMs.length*100)+'% de clean sheets. Travaillez l\'organisation défensive et envisagez un système plus protecteur (5 derrière ou 4-2 défensif).'});
+  // Meilleure association
+  if(topPairs.length>=1){
+    var tp=topPairs[0];var ids=tp[0].split('|');var p1=pMap[ids[0]],p2=pMap[ids[1]];
+    if(p1&&p2) recs.push({ico:'👥',col:'#38a169',title:'Duo à maintenir',body:'<b>'+p1.prenom+' '+p1.nom+'</b> + <b>'+p2.prenom+' '+p2.nom+'</b> — votre meilleure association ('+statBox(tp[1]).winPct+'% victoires sur '+tp[1].length+' matchs ensemble).'});
+  }
+  // Séances recommandées
+  var seancesRec=[];
+  if(cohIdx<60) seancesRec.push('Organisation collective — renforcer les automatismes du système principal');
+  if(csMs.length/scoredMs.length<0.3&&scoredMs.length>=4) seancesRec.push('Travail défensif — bloc bas, couverture de zone, transitions défensives');
+  var avgGoalsPM=scoredMs.reduce(function(a,m){return a+(m.scoreUR||0);},0)/scoredMs.length;
+  if(avgGoalsPM<1.2&&scoredMs.length>=4) seancesRec.push('Efficacité offensive — finition, création en zone avancée, mouvements sans ballon');
+  if(streak>2&&streakType==='l') seancesRec.push('Remise en confiance — travail sur les forces collectives, rythme élevé, positif');
+  if(seancesRec.length) recs.push({ico:'🏋️',col:'#63b3ed',title:'Séances prioritaires',body:seancesRec.map(function(s){return '• '+s;}).join('<br>')});
+
+  html+='<div class="sec"><div class="stit">🎯 Recommandations avant match</div>';
+  recs.forEach(function(r){
+    html+='<div style="display:flex;gap:12px;align-items:start;padding:11px;background:#2d3748;border-radius:9px;margin-bottom:9px;border-left:3px solid '+r.col+'">';
+    html+='<div style="font-size:22px;line-height:1;flex-shrink:0">'+r.ico+'</div>';
+    html+='<div><div style="font-size:12px;font-weight:700;color:'+r.col+';margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px">'+r.title+'</div>';
+    html+='<div style="font-size:12px;color:#e2e8f0;line-height:1.6">'+r.body+'</div></div>';
+    html+='</div>';
+  });
+  if(!recs.length) html+='<div style="color:#718096;font-size:12px;padding:8px 0">Ajoutez davantage de matchs pour générer des recommandations fiables.</div>';
+  html+='</div>';
+
+  return html;
+}
+
 function renderChoose(){
   const q=document.getElementById('chsearch').value.toLowerCase();
   const used=[...Object.values(curMatch.tit).filter(Boolean),...curMatch.rmp.filter(Boolean)];
