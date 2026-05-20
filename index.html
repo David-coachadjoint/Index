@@ -3001,40 +3001,7 @@ function pdfPitchHome(){
   }
 }
 
-    if(appSvg){
-      var clone = appSvg.cloneNode(true);
-      // Ajuster pour le PDF
-      clone.setAttribute('width','100%');
-      clone.style.cssText = 'max-width:240px;display:block;margin:auto;border-radius:6px';
-      // Supprimer l'interactivité
-      clone.querySelectorAll('[onclick]').forEach(function(el){ el.removeAttribute('onclick'); });
-      clone.querySelectorAll('[style*="cursor:pointer"]').forEach(function(el){ el.style.cursor='default'; });
-      return clone.outerHTML;
-    }
-  }catch(e){}
-
-  // Fallback texte si le SVG n'est pas trouvable
-  try{
-    var fk = gv('mform') || (typeof curMatch!=='undefined'?curMatch.formation:'');
-    var html = '<div style="background:#276749;border-radius:6px;padding:16px;max-width:240px;margin:auto">'
-      +'<div style="color:#fff;font-weight:700;font-size:13px;margin-bottom:10px;text-align:center">'+fk+'</div>';
-    var tit = (typeof curMatch!=='undefined'&&curMatch.tit) ? curMatch.tit : {};
-    var pMap={};
-    try{ if(typeof players!=='undefined') players.forEach(function(p){pMap[String(p.id)]=p;}); }catch(e){}
-    Object.values(tit).forEach(function(pd){
-      if(!pd) return;
-      var plId = pd.id||pd.playerId||pd.pid;
-      var pl = plId?pMap[String(plId)]:null;
-      var name = pl?((pl.prenom?pl.prenom+' ':'')+pl.nom):(pd.nom||'');
-      if(name) html+='<div style="color:#fff;font-size:11px;padding:2px 0">'+name+'</div>';
-    });
-    html+='</div>';
-    return html;
-  }catch(e){
-    return '<p style="color:#999;font-size:12px;text-align:center;padding:16px">Données non disponibles</p>';
-  }
-}
-
+   
 // Liste simple des titulaires — prénom + poste uniquement
 function buildSimpleTitList(){
   var items = '';
