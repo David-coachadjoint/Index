@@ -1970,7 +1970,7 @@ function buildSquadADNHtml(plist){
   out+='<div style="background:linear-gradient(135deg,#0f2744 0%,#1a3a5c 100%);border:1px solid #2d4a7a;border-radius:14px;padding:20px;margin-bottom:16px">';
   out+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">';
   out+='<div><div style="font-size:19px;font-weight:900;color:#fff;margin-bottom:3px">🧬 ADN de Jeu — Noyau Complet</div>';
-  out+='<div style="font-size:11px;color:#63b3ed">'+plist.length+' joueur'+(plist.length>1?'s':'')+' · Formation de référence&nbsp;: <b>'+bestForm+'</b>'+(bestCnt?' ('+bestCnt+' match'+(bestCnt>1?'s':'')+')')+'</div></div>';
+  out+='<div style="font-size:11px;color:#63b3ed">'+plist.length+' joueur'+(plist.length>1?'s':'')+' · Formation de référence&nbsp;: <b>'+bestForm+'</b>'+(bestCnt?' ('+bestCnt+' match'+(bestCnt>1?'s':'')+')':'')+'</div></div>';
   out+='<div style="text-align:center;background:rgba(0,0,0,.3);border-radius:10px;padding:8px 16px">';
   out+='<div style="font-size:10px;color:#a0aec0;text-transform:uppercase;letter-spacing:.6px">ADN dominant</div>';
   out+='<div style="font-size:15px;font-weight:900;color:'+dominant.color+'">'+dominant.ico+' '+dominant.label+'</div>';
