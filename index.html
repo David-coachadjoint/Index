@@ -2931,6 +2931,19 @@ function addPdfBtn(){
   btn.onmouseout  = function(){this.style.background='#6b46c1';};
   btn.onclick = function(){ window.genMatchPdf(); };
   saveBtn.parentNode.insertBefore(btn, saveBtn);
+
+  // Bouton ADN de Jeu
+  if(!document.getElementById('adv-adn-btn')){
+    var adnBtn = document.createElement('button');
+    adnBtn.id = 'adv-adn-btn';
+    adnBtn.innerHTML = '🧬 ADN de Jeu';
+    adnBtn.title = 'Analyser l\'ADN tactique de cette composition';
+    adnBtn.style.cssText = 'background:#276749;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:700;margin-right:8px;transition:background .2s';
+    adnBtn.onmouseover = function(){this.style.background='#1e4d35';};
+    adnBtn.onmouseout  = function(){this.style.background='#276749';};
+    adnBtn.onclick = function(){ window.genADNAnalysis(); };
+    saveBtn.parentNode.insertBefore(adnBtn, saveBtn);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -3359,6 +3372,451 @@ window.genMatchPdf = function(){
 };
 
 // ═══════════════════════════════════════════════════
+// ANALYSE ADN DE JEU
+// ═══════════════════════════════════════════════════
+window.genADNAnalysis = function(){
+  var formation = curMatch.formation || '4-3-3';
+  var tids = Object.values(curMatch.tit||{}).filter(Boolean);
+  var tpls = tids.map(function(id){ return players.find(function(p){ return p.id===id; }); }).filter(Boolean);
+  if(!tpls.length){ alert('⚠ Aucun titulaire sélectionné — composez l\'équipe avant l\'analyse.'); return; }
+
+  var ADN_DEF = [
+    {id:'transition',  label:'Transition',                  ico:'⚡', color:'#f59e0b'},
+    {id:'possession',  label:'Possession',                  ico:'⚽', color:'#3182ce'},
+    {id:'pressing',    label:'Pressing intense',             ico:'🔥', color:'#e53e3e'},
+    {id:'positionnel', label:'Jeu positionnel',              ico:'🧩', color:'#805ad5'},
+    {id:'direct',      label:'Jeu direct',                  ico:'🎯', color:'#dd6b20'},
+    {id:'relationnel', label:'Jeu relationnel / associatif', ico:'🤝', color:'#38a169'},
+    {id:'bloc',        label:'Bloc bas / défensif',          ico:'🛡️', color:'#718096'},
+    {id:'hybride',     label:'Hybride moderne',              ico:'🔄', color:'#00b5d8'},
+  ];
+
+  // 1. FORMATION (poids 30%)
+  var FS = {
+    '4-3-3':   {transition:55,possession:60,pressing:75,positionnel:65,direct:40,relationnel:55,bloc:25,hybride:70},
+    '4-4-2':   {transition:65,possession:40,pressing:70,positionnel:45,direct:75,relationnel:50,bloc:45,hybride:55},
+    '4-2-3-1': {transition:50,possession:65,pressing:50,positionnel:80,direct:45,relationnel:60,bloc:55,hybride:75},
+    '3-5-2':   {transition:60,possession:55,pressing:60,positionnel:65,direct:55,relationnel:65,bloc:50,hybride:65},
+    '3-4-3':   {transition:80,possession:50,pressing:80,positionnel:55,direct:55,relationnel:55,bloc:20,hybride:70},
+    '5-3-2':   {transition:50,possession:45,pressing:40,positionnel:55,direct:55,relationnel:45,bloc:80,hybride:50},
+    '4-1-4-1': {transition:55,possession:65,pressing:65,positionnel:75,direct:40,relationnel:60,bloc:50,hybride:80},
+    '3-1-3-3': {transition:75,possession:55,pressing:80,positionnel:60,direct:60,relationnel:60,bloc:25,hybride:75},
+  };
+  var fScores = FS[formation]||FS['4-3-3'];
+
+  // 2. COMPÉTENCES JOUEURS (poids 40%)
+  var SKILL_MAP = {
+    transition:  ['vitesse','explosivite','tac_transition_off','tac_transition_def','tac_contre','percussion'],
+    possession:  ['technique','vision','decision','distribution','tac_placement','communication'],
+    pressing:    ['tac_pressing','endurance','esprit','recuperation','intel_t','attitude'],
+    positionnel: ['tac_placement','intel_t','position','tac_lecture_jeu','tac_hors_jeu','vision'],
+    direct:      ['force','vitesse','finition','tac_contre','robustesse','percussion'],
+    relationnel: ['creativite','vision','precision','technique','communication','esprit'],
+    bloc:        ['tac_repli','tac_placement','robustesse','force','concentration','sang_froid'],
+    hybride:     ['intel_t','decision','prise_risque','tac_lecture_jeu','resilience','timing'],
+  };
+  var skillScores = {};
+  ADN_DEF.forEach(function(a){
+    var keys=SKILL_MAP[a.id]||[],total=0,count=0;
+    tpls.forEach(function(pl){
+      var sk=pl.skills||{};
+      keys.forEach(function(k){ if(sk[k]!==undefined){total+=(sk[k]||0);count++;} });
+    });
+    skillScores[a.id] = count ? Math.round(total/count) : 50;
+  });
+
+  // 3. PROFILS MENTAUX (poids 15%)
+  var MENTAL_MAP = {
+    soldat:      {pressing:15,bloc:15},
+    leader:      {possession:15,positionnel:15},
+    competiteur: {pressing:10,transition:15},
+    sangfroid:   {positionnel:15,possession:10},
+    joker:       {transition:15,hybride:10},
+    rotation:    {hybride:15,relationnel:10},
+    tempvif:     {transition:10,direct:10},
+    coequipier:  {pressing:10,relationnel:10,possession:5},
+    apprenant:   {hybride:5},
+    tetebrulee:  {direct:15,transition:10},
+  };
+  var mentalScores = {};
+  ADN_DEF.forEach(function(a){ mentalScores[a.id]=50; });
+  tpls.forEach(function(pl){
+    if(pl.mentalProfil&&MENTAL_MAP[pl.mentalProfil]){
+      var deltas=MENTAL_MAP[pl.mentalProfil];
+      Object.keys(deltas).forEach(function(k){ mentalScores[k]=(mentalScores[k]||50)+deltas[k]; });
+    }
+  });
+  ADN_DEF.forEach(function(a){ mentalScores[a.id]=Math.min(100,mentalScores[a.id]); });
+
+  // 4. PROFIL PF (poids 5%)
+  var PF_MAP = {
+    'Spécialiste':{direct:15},
+    'Double':     {positionnel:15},
+    'Triple':     {hybride:15,relationnel:10},
+    'Complet':    {possession:15,positionnel:10,hybride:5},
+    'Polyvalent': {hybride:20},
+  };
+  var pfScores = {};
+  ADN_DEF.forEach(function(a){ pfScores[a.id]=50; });
+  tpls.forEach(function(pl){
+    if(pl.profil&&PF_MAP[pl.profil]){
+      var deltas=PF_MAP[pl.profil];
+      Object.keys(deltas).forEach(function(k){ pfScores[k]=(pfScores[k]||50)+deltas[k]; });
+    }
+  });
+  ADN_DEF.forEach(function(a){ pfScores[a.id]=Math.min(100,pfScores[a.id]); });
+
+  // 5. RÉPARTITION POSTES (poids 10%)
+  var layout=FORMATIONS[formation];
+  var posScores = {};
+  ADN_DEF.forEach(function(a){ posScores[a.id]=50; });
+  if(layout){
+    var nD=0,nM=0,nA=0;
+    layout.pos.forEach(function(p){ if(p.g==='DEF')nD++; else if(p.g==='MIL')nM++; else if(p.g==='ATT')nA++; });
+    if(nD>=4){ posScores.bloc+=20; }
+    if(nM>=4){ posScores.possession+=15; posScores.positionnel+=15; }
+    if(nA>=3){ posScores.pressing+=15; posScores.direct+=15; posScores.transition+=10; }
+    ADN_DEF.forEach(function(a){ posScores[a.id]=Math.min(100,posScores[a.id]); });
+  }
+
+  // SCORE FINAL pondéré
+  var finals = {};
+  ADN_DEF.forEach(function(a){
+    finals[a.id] = Math.min(100,Math.max(0,Math.round(
+      fScores[a.id]*0.30 + skillScores[a.id]*0.40 + mentalScores[a.id]*0.15 + pfScores[a.id]*0.05 + posScores[a.id]*0.10
+    )));
+  });
+
+  var sortedADN = ADN_DEF.slice().sort(function(a,b){ return finals[b.id]-finals[a.id]; });
+  var dominant  = sortedADN[0];
+  var second    = sortedADN[1];
+
+  // EXPLICATIONS PAR ADN
+  var EXPL = {
+    transition:  {struct:'Formation favorisant la profondeur et les transitions rapides avec des attaquants de vitesse.',         profils:'Joueurs explosifs et rapides capables de déclencher immédiatement après récupération.',              collectif:'Bloc compact, récupération rapide, déclenchement vertical en 2-3 passes.'},
+    possession:  {struct:'Structure favorisant la conservation du ballon avec des milieux techniques et distributeurs.',          profils:'Milieux à forte intelligence tactique, vision du jeu et précision dans la distribution.',              collectif:'Patience dans la construction, occupation intelligente de l\'espace, tempo maîtrisé.'},
+    pressing:    {struct:'Formation agressive, lignes hautes, pressing organisé en zones pour récupérer haut.',                   profils:'Joueurs à forte endurance, esprit d\'équipe et intensité dans les duels.',                           collectif:'Efforts collectifs synchronisés, haute densité de travail, réactivité immédiate à la perte.'},
+    positionnel: {struct:'Système structuré avec milieu dense, positionnement précis, exploitation des demi-espaces.',            profils:'Joueurs à forte intelligence tactique, lecture du jeu et discipline positionnelle.',                   collectif:'Organisation collective rigoureuse, domination zonale, utilisation de l\'espace entre les lignes.'},
+    direct:      {struct:'Jeu vertical avec attaquants de référence, duels aériens et lignes directes vers l\'avant.',           profils:'Attaquants puissants et percutants, capables de jouer en pivot et de conclure.',                      collectif:'Jeu long assumé, second ballon, percussion directe vers le but.'},
+    relationnel: {struct:'Système fondé sur les combinaisons courtes, les appels de balle et les triangles.',                    profils:'Joueurs créatifs, techniques, avec forte communication et vision périphérique.',                       collectif:'Jeu en soutien permanent, permutations fréquentes, liens forts entre toutes les lignes.'},
+    bloc:        {struct:'Organisation défensive prioritaire, lignes basses, densité dans l\'axe, sorties contrôlées.',          profils:'Défenseurs robustes, concentrés, disciplinés avec bonne maîtrise des duels de zone.',                 collectif:'Bloc bas organisé, sacrifices collectifs permanents, déchargements vers l\'avant au moment choisi.'},
+    hybride:     {struct:'Système polyvalent capable d\'adopter plusieurs styles selon les phases et l\'adversaire.',             profils:'Joueurs intelligents et polyvalents, capables d\'adapter leur rôle en cours de match.',               collectif:'Lecture collective évoluée, alternance des blocs, capacité à jouer différemment par période.'},
+  };
+
+  // DÉTECTION DES CONTRADICTIONS
+  var contradictions = [];
+  var avgSk = function(pl,k){ return (pl.skills&&pl.skills[k]!==undefined)?pl.skills[k]:50; };
+  var avgGroup = function(arr,k){ return arr.length?arr.reduce(function(a,p){return a+avgSk(p,k);},0)/arr.length:50; };
+  var posGroup = function(g){ return tpls.filter(function(pl){ var found=false; Object.keys(curMatch.tit).forEach(function(pk){ if(curMatch.tit[pk]===pl.id&&layout){var pp=layout.pos.find(function(x){return x.k===pk;}); if(pp&&pp.g===g)found=true;} }); return found; }); };
+
+  var defPl=posGroup('DEF'), milPl=posGroup('MIL'), attPl=posGroup('ATT');
+
+  if(finals.pressing>62 && avgGroup(defPl,'vitesse')<48)
+    contradictions.push('⚡ <b>Pressing haut / Défenseurs lents</b> — pressing souhaité mais vitesse défensive faible (moy. '+Math.round(avgGroup(defPl,'vitesse'))+'/100). Risque élevé sur transitions adverses.');
+  if(finals.possession>60 && avgGroup(milPl,'technique')<48)
+    contradictions.push('⚽ <b>Possession / Milieux peu techniques</b> — orientation possession mais technique des milieux insuffisante (moy. '+Math.round(avgGroup(milPl,'technique'))+'/100). Difficulté à conserver sous pression.');
+  if(finals.direct>62 && avgGroup(attPl,'force')<45 && avgGroup(attPl,'vitesse')<45)
+    contradictions.push('🎯 <b>Jeu direct / Attaquants peu percutants</b> — jeu direct envisagé mais attaquants faibles en force ET vitesse. Absence de référence offensive pour fixer les défenses.');
+  if(finals.hybride>65 && tpls.reduce(function(a,p){return a+avgSk(p,'intel_t');},0)/tpls.length<48)
+    contradictions.push('🔄 <b>Hybride / Intelligence tactique faible</b> — ADN hybride difficile à tenir avec une intelligence collective limitée (moy. '+Math.round(tpls.reduce(function(a,p){return a+avgSk(p,'intel_t');},0)/tpls.length)+'/100).');
+  if(finals.pressing>62 && tpls.reduce(function(a,p){return a+avgSk(p,'endurance');},0)/tpls.length<45)
+    contradictions.push('🔥 <b>Pressing / Endurance insuffisante</b> — pressing intense prévu mais endurance collective faible (moy. '+Math.round(tpls.reduce(function(a,p){return a+avgSk(p,'endurance');},0)/tpls.length)+'/100). Risque de relâchement en 2e mi-temps.');
+  if(finals.positionnel>65 && avgGroup(milPl,'tac_placement')<45)
+    contradictions.push('🧩 <b>Jeu positionnel / Placement défaillant</b> — jeu positionnel visé mais discipline positionnelle des milieux insuffisante. Risque de désorganisation face au pressing adverse.');
+
+  // GÉNÉRATION HTML
+  var barsHtml = sortedADN.map(function(a,idx){
+    var pct=finals[a.id], isDom=idx===0;
+    return '<div style="margin-bottom:'+(isDom?'14':'9')+'px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+      +'<span style="font-size:'+(isDom?'13':'12')+'px;font-weight:'+(isDom?'800':'600')+';color:'+(isDom?a.color:'#e2e8f0')+'">'+a.ico+' '+a.label+(isDom?' &nbsp;<span style="background:'+a.color+';color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700">ADN DOMINANT</span>':'')+'</span>'
+      +'<span style="font-size:'+(isDom?'15':'13')+'px;font-weight:900;color:'+a.color+'">'+pct+'%</span>'
+      +'</div>'
+      +'<div style="background:#2d3748;border-radius:6px;height:'+(isDom?'16':'10')+'px;overflow:hidden">'
+      +'<div style="background:'+a.color+';height:100%;width:'+pct+'%;border-radius:6px"></div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  var ctrdHtml = contradictions.length
+    ? contradictions.map(function(c){ return '<div style="background:rgba(245,101,101,.1);border-left:3px solid #fc8181;padding:9px 12px;margin-bottom:8px;border-radius:0 8px 8px 0;font-size:12px;color:#fed7d7;line-height:1.6">'+c+'</div>'; }).join('')
+    : '<div style="color:#68d391;font-size:13px;padding:6px 0;display:flex;align-items:center;gap:8px"><span style="font-size:20px">✅</span> Aucune contradiction majeure détectée — cohérence tactique satisfaisante pour cette composition.</div>';
+
+  var domE = EXPL[dominant.id];
+  var adv  = (typeof gv==='function'?gv('madv'):'')||'';
+
+  // ──── SCORE DE COHÉRENCE GLOBALE ────
+  // Matrice de compatibilité entre ADN (0–100)
+  var COMPAT = {
+    transition:  {transition:100,possession:42,pressing:80,positionnel:52,direct:70,relationnel:48,bloc:38,hybride:72},
+    possession:  {transition:42,possession:100,pressing:52,positionnel:88,direct:36,relationnel:78,bloc:50,hybride:68},
+    pressing:    {transition:80,possession:52,pressing:100,positionnel:62,direct:55,relationnel:50,bloc:40,hybride:68},
+    positionnel: {transition:52,possession:88,pressing:62,positionnel:100,direct:38,relationnel:82,bloc:48,hybride:75},
+    direct:      {transition:70,possession:36,pressing:55,positionnel:38,direct:100,relationnel:45,bloc:72,hybride:58},
+    relationnel: {transition:48,possession:78,pressing:50,positionnel:82,direct:45,relationnel:100,bloc:42,hybride:70},
+    bloc:        {transition:38,possession:50,pressing:40,positionnel:48,direct:72,relationnel:42,bloc:100,hybride:55},
+    hybride:     {transition:72,possession:68,pressing:68,positionnel:75,direct:58,relationnel:70,bloc:55,hybride:100},
+  };
+  var compatPct = (COMPAT[dominant.id]||{})[second.id]||55;
+
+  // Alignement profils mentaux → ADN dominant
+  var ADN_MENTAL_ALIGN = {
+    transition: ['competiteur','joker','tempvif','tetebrulee'],
+    possession: ['leader','sangfroid','coequipier'],
+    pressing:   ['soldat','competiteur','coequipier','tetebrulee'],
+    positionnel:['leader','sangfroid','rotation'],
+    direct:     ['competiteur','tetebrulee','tempvif'],
+    relationnel:['coequipier','rotation','joker'],
+    bloc:       ['soldat','sangfroid','coequipier'],
+    hybride:    ['rotation','joker','apprenant','leader'],
+  };
+  var alignProfiles = ADN_MENTAL_ALIGN[dominant.id]||[];
+  var mentalAligned = tpls.filter(function(p){ return p.mentalProfil&&alignProfiles.indexOf(p.mentalProfil)>=0; }).length;
+
+  var ptDominant   = Math.round(finals[dominant.id]*0.35);
+  var ptCompat     = Math.round(compatPct*0.25);
+  var ptContradict = Math.max(0, 20 - contradictions.length*6);
+  var ptAlignment  = tpls.length ? Math.round((mentalAligned/tpls.length)*20) : 10;
+  var coherenceScore = Math.min(100, Math.max(0, ptDominant+ptCompat+ptContradict+ptAlignment));
+
+  var cohColor = coherenceScore>=75?'#38a169':coherenceScore>=55?'#f59e0b':'#e53e3e';
+  var cohLabel = coherenceScore>=80?'Projet de jeu très cohérent':coherenceScore>=65?'Cohérence solide — quelques ajustements':coherenceScore>=50?'Cohérence partielle — des contradictions à résoudre':'Projet de jeu peu cohérent — révision nécessaire';
+
+  // ──── MÉLANGE ADN : cohérence du mix ────
+  var mixCoherent = compatPct >= 65;
+  var mixGap = finals[dominant.id] - finals[second.id];
+  var mixProfile = mixGap >= 18 ? 'Identité claire et affirmée' : mixGap >= 8 ? 'ADN principal marqué, 2e tendance notable' : 'Identité diffuse — double ADN équilibré';
+  var mixAdvice = '';
+  if(!mixCoherent)
+    mixAdvice = '⚠️ Le mélange '+dominant.label+' / '+second.label+' est tactiquement contradictoire. Il est recommandé de trancher : soit renforcer l\'ADN dominant, soit migrer explicitement vers un profil Hybride assumé.';
+  else if(mixGap < 8)
+    mixAdvice = '💡 Les deux ADN sont proches en score. L\'équipe peut exploiter cette dualité si elle est entraînée à passer d\'un mode à l\'autre selon les phases de jeu.';
+  else
+    mixAdvice = '✅ Le '+dominant.label+' principal et le '+second.label+' secondaire forment un mix cohérent et exploitable tactiquement.';
+
+  // ──── POINTS FORTS IDENTITAIRES ────
+  var STRENGTHS_BY_ADN = {
+    transition: ['Vitesse de déclenchement après récupération','Profondeur offensive permanente','Explosivité dans les couloirs','Dangerosité immédiate en transition'],
+    possession: ['Capacité à conserver sous pression','Intelligence de déplacement des milieux','Gestion du rythme et du tempo','Construction propre depuis l\'arrière'],
+    pressing:   ['Intensité collective en zone haute','Récupération rapide du ballon','Synchronisation des lignes au pressing','Engagement physique supérieur'],
+    positionnel:['Occupation intelligente de l\'espace','Exploitation des demi-espaces','Discipline positionnelle collective','Domination structurelle en milieu de terrain'],
+    direct:     ['Efficacité verticale immédiate','Présence physique en attaque','Capacité à jouer long et à fixer','Dangerosité sur phases aériennes'],
+    relationnel:['Fluidité des combinaisons','Création collective par associations','Permutations et appels de balle constants','Créativité offensive déstabilisante'],
+    bloc:       ['Solidité défensive collective','Discipline d\'organisation','Résistance physique et mentale','Efficacité sur coups de pied arrêtés'],
+    hybride:    ['Adaptabilité tactique en cours de match','Lecture collective avancée','Polyvalence individuelle et collective','Capacité à surprendre l\'adversaire'],
+  };
+  var WEAKNESSES_BY_ADN = {
+    transition: ['Vulnérabilité si l\'adversaire possède le ballon longtemps','Dépendance aux qualités athlétiques individuelles','Difficulté à contrôler un match serré','Usure physique en fin de match si mal géré'],
+    possession: ['Lenteur de transition si le bloc est bas','Vulnérabilité au pressing adverse haut','Risque de stérilité offensive sans créativité','Dépendance aux relanceurs techniques arrière'],
+    pressing:   ['Forte dépense énergétique — risque de relâchement','Espacement dangereux si mal synchronisé','Vulnérabilité sur le jeu long par-dessus le pressing','Nécessite une condition physique optimale'],
+    positionnel:['Lenteur de jeu perçue face à des blocs bas','Difficulté à improviser en cas de désorganisation','Créativité limitée si les principes sont trop rigides','Complexité d\'apprentissage pour les profils moins tactiques'],
+    direct:     ['Peu de maîtrise du jeu en phase de possession','Dépendance à un attaquant de référence','Manque de solutions si la cible n\'est pas disponible','Vulnérabilité aux défenses hautes et athlétiques'],
+    relationnel:['Fragilité face aux blocs compacts','Manque de verticalité directe','Risque de perte de balle dans les zones dangereuses','Nécessite des profils rares en terme de technique et créativité'],
+    bloc:       ['Peu de maîtrise en possession','Dépendance aux transitions rapides pour scorer','Risque de subir psychologiquement sur le long terme','Difficile à tenir sur une longue période si équipe mal formée'],
+    hybride:    ['Identité parfois floue pour les joueurs','Difficulté à atteindre l\'excellence dans un seul ADN','Risque de confusion si les principes ne sont pas clarifiés','Nécessite une intelligence tactique collective élevée'],
+  };
+  var PRINCIPLES_BY_ADN = {
+    transition: ['Bloc défensif compact — déclenchement immédiat à la récupération','Appels de profondeur systématiques','Passes directes vers les attaquants en mouvement','Limitation du nombre de touches en transition offensive'],
+    possession: ['Circulation du ballon à 2-3 touches maximum','Appuis permanents et triangles de passe','Variation du rythme — slow + accélération soudaine','Sortie des gardiens — construction propre depuis l\'arrière'],
+    pressing:   ['Pressing déclenché sur signal collectif','Couverture immédiate sur le porteur adverse','Contre-pressing dans les 6 secondes après la perte','Maintien de la ligne haute défensive'],
+    positionnel:['Occupation des 5 couloirs verticaux','Positionnement entre les lignes pour les milieux','Changement de côté rapide pour déséquilibrer','Maîtrise du hors-jeu collectif'],
+    direct:     ['Jeu long ciblé sur le 9 référence','Récupération du second ballon organisée','Pressing immédiat après jeu long adverse','Soutien rapide derrière l\'attaquant pivot'],
+    relationnel:['Un-deux et remise en triangle','Permutations de postes en attaque placée','Communication verbale et non-verbale permanente','Petits espaces — jeu entre les lignes courtes'],
+    bloc:       ['Bloc 4-4-2 ou 5-4-1 bas et compact','Sorties contrôlées — pas de pressing individuel','Occupation du couloir central prioritaire','Déchargements en profondeur sur attaquants rapides'],
+    hybride:    ['Reconnaissance des phases et adaptation du bloc','Consignes claires pour passer d\'un ADN à l\'autre','Polyvalence positionnelle de 3-4 joueurs minimum','Séances d\'analyse vidéo collective sur les transitions d\'ADN'],
+  };
+  var TRAINING_BY_ADN = {
+    transition: [
+      {ico:'⚡',t:'Rondo récupération + déclenchement',d:'5v2 en carré — à la récupération, 2 touches max pour déclencher vers cible en profondeur'},
+      {ico:'🏃',t:'Sprints décisionnels',d:'Situation 4v4 — signal aléatoire de l\'entraîneur pour déclencher la transition offensive'},
+      {ico:'🎯',t:'Finition sur transition',d:'Séquence défense → récupération → finition en contre en moins de 8 secondes'},
+      {ico:'🔄',t:'Jeu de transition 6v6',d:'Match court à thème — but valable uniquement si le but est inscrit dans les 10 sec après récupération'},
+    ],
+    possession: [
+      {ico:'🔵',t:'Rondo technique 5v2 / 6v2',d:'Objectif : conservation 10 passes consécutives — accent sur la qualité de passe et les appuis'},
+      {ico:'🏗️',t:'Construction depuis GK',d:'Sortie du gardien sous pressing — 11v11 avec pressing déclenché dès la relance adverse'},
+      {ico:'📐',t:'Jeu de position thématique',d:'Situation 4v4+3 appuis — conservation avec utilisation obligatoire des appuis extérieurs'},
+      {ico:'🔁',t:'Circuit de passes décisionnel',d:'Parcours passe + appel + décision — accent sur la variation de rythme et le bon timing'},
+    ],
+    pressing:   [
+      {ico:'🔥',t:'Pressing organisé en 3 lignes',d:'Séquence d\'organisation pressing haut — signal sur relance du GK adverse — synchronisation des 3 lignes'},
+      {ico:'💪',t:'Duels haute intensité',d:'Séries de 1v1 et 2v2 sous fatigue — 6 répétitions — récupération active entre chaque'},
+      {ico:'⏱️',t:'Contre-pressing 6 secondes',d:'Jeu 8v8 — objectif récupérer le ballon dans les 6 secondes après la perte sous peine de malus'},
+      {ico:'🏋️',t:'Bloc sous fatigue',d:'Organisation défensive en fin de séance — pressing déclenché après 20 min de travail physique intense'},
+    ],
+    positionnel:[
+      {ico:'🧩',t:'Jeu de position — 5 couloirs',d:'11v11 thématique — obligation d\'occuper les 5 couloirs verticaux avant de jouer vers l\'avant'},
+      {ico:'↔️',t:'Changement de côté rapide',d:'Situation 6v4 — déséquilibre par changement de côté en moins de 3 passes'},
+      {ico:'📏',t:'Situations entre les lignes',d:'5v4+GK — milieux autorisés à jouer uniquement entre les lignes adverses'},
+      {ico:'🚩',t:'Maîtrise du hors-jeu',d:'Organisation de la ligne défensive sur signal — synchronisation du hors-jeu collectif'},
+    ],
+    direct:     [
+      {ico:'🎯',t:'Duels aériens et terrestres',d:'Séances de jeu en pivot 1v1 pour les attaquants — réception, fixation, remise'},
+      {ico:'📏',t:'Jeu long + second ballon',d:'Situation 6v6 — jeu long obligatoire — équipe organisée pour le second ballon'},
+      {ico:'⚡',t:'Finition sous pression physique',d:'Attaquants en situation de finition après sprint 30m — stress physique simulé'},
+      {ico:'🔄',t:'Transition longue → rapide',d:'Séquence jeu long → récupération → attaque rapide en infériorité numérique'},
+    ],
+    relationnel:[
+      {ico:'🤝',t:'Combinaisons en triangle 3v1',d:'Un-deux et remises en triangle — objectif : 5 combinaisons consécutives dans un couloir'},
+      {ico:'💫',t:'Petits espaces créatifs',d:'3v3 en zone restreinte (10x10m) — prime aux combinaisons, interdiction de dribble direct'},
+      {ico:'🔀',t:'Permutations de postes',d:'Jeu 7v7 — les joueurs doivent permuter de poste à chaque transition — adaptabilité'},
+      {ico:'📢',t:'Communication + appels',d:'Situation 5v3 — communication verbale obligatoire avant chaque passe — qualité des appels'},
+    ],
+    bloc:       [
+      {ico:'🛡️',t:'Organisation bloc bas',d:'Mise en place du 4-4-2 ou 5-4-1 bas — sorties contrôlées — simulation de situations de pression'},
+      {ico:'🔒',t:'Duels défensifs en zone',d:'Séquences 2v1 et 2v2 en zone défensive — priorité à la couverture et au duel physique'},
+      {ico:'⬆️',t:'Transition défense → attaque',d:'Récupération dans le bloc bas → transition courte vers attaquant → finition — 5 secondes max'},
+      {ico:'📐',t:'CPA défensifs',d:'Séance spécifique : organisation sur corners et CPA adverses — marquage individuel + zone'},
+    ],
+    hybride:    [
+      {ico:'🔄',t:'Match à ADN changeant',d:'Jeu 11v11 — l\'entraîneur change l\'ADN à mi-séance — équipe doit s\'adapter sans interruption'},
+      {ico:'🧠',t:'Analyse vidéo collective',d:'Séance de reconnaissance des phases de jeu — apprendre à lire quand basculer d\'un ADN à l\'autre'},
+      {ico:'🎭',t:'Polyvalence positionnelle',d:'Exercice de rotation des rôles — chaque joueur joue 10 min à un poste différent de son poste habituel'},
+      {ico:'📋',t:'Situations lecture collective',d:'Jeux à règles changeantes — l\'équipe doit détecter collectivement le bon mode de jeu à appliquer'},
+    ],
+  };
+
+  var strengths   = STRENGTHS_BY_ADN[dominant.id]  || [];
+  var weaknesses  = WEAKNESSES_BY_ADN[dominant.id]  || [];
+  var principles  = PRINCIPLES_BY_ADN[dominant.id]  || [];
+  var trainings   = TRAINING_BY_ADN[dominant.id]    || [];
+
+  // HTML blocs secondaires
+  var cohHtml = '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">'
+    +'<div style="position:relative;width:110px;height:110px;flex-shrink:0">'
+    +'<svg viewBox="0 0 36 36" width="110" height="110"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2d3748" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="'+cohColor+'" stroke-width="3" stroke-dasharray="'+coherenceScore+', 100"/><text x="18" y="20.35" text-anchor="middle" font-size="8" font-weight="900" fill="'+cohColor+'">'+coherenceScore+'</text><text x="18" y="25.5" text-anchor="middle" font-size="3.5" fill="#718096">/100</text></svg>'
+    +'</div>'
+    +'<div style="flex:1">'
+    +'<div style="font-size:18px;font-weight:900;color:'+cohColor+';margin-bottom:4px">'+cohLabel+'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">'
+    +'<span style="background:#2d3748;border-radius:6px;padding:5px 10px;font-size:11px;color:#e2e8f0">🎯 ADN dominant : <b>'+Math.round(ptDominant/0.35)+'%</b></span>'
+    +'<span style="background:#2d3748;border-radius:6px;padding:5px 10px;font-size:11px;color:#e2e8f0">🔗 Mix ADN : <b>'+compatPct+'%</b> compat.</span>'
+    +'<span style="background:#2d3748;border-radius:6px;padding:5px 10px;font-size:11px;color:#e2e8f0">⚠️ Contradict. : <b>'+contradictions.length+'</b></span>'
+    +'<span style="background:#2d3748;border-radius:6px;padding:5px 10px;font-size:11px;color:#e2e8f0">🧠 Profils alignés : <b>'+mentalAligned+'/'+tpls.length+'</b></span>'
+    +'</div>'
+    +'</div>'
+    +'</div>';
+
+  var mixHtml = '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<div style="flex:1;min-width:180px;background:#2d3748;border-radius:10px;padding:12px;border-top:3px solid '+dominant.color+'">'
+    +'<div style="font-size:10px;color:#a0aec0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">ADN Principal</div>'
+    +'<div style="font-size:15px;font-weight:800;color:'+dominant.color+'">'+dominant.ico+' '+dominant.label+'</div>'
+    +'<div style="font-size:22px;font-weight:900;color:'+dominant.color+';margin-top:2px">'+finals[dominant.id]+'%</div>'
+    +'</div>'
+    +'<div style="flex:1;min-width:180px;background:#2d3748;border-radius:10px;padding:12px;border-top:3px solid '+second.color+'">'
+    +'<div style="font-size:10px;color:#a0aec0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">ADN Secondaire</div>'
+    +'<div style="font-size:15px;font-weight:800;color:'+second.color+'">'+second.ico+' '+second.label+'</div>'
+    +'<div style="font-size:22px;font-weight:900;color:'+second.color+';margin-top:2px">'+finals[second.id]+'%</div>'
+    +'</div>'
+    +'<div style="flex:1;min-width:180px;background:#2d3748;border-radius:10px;padding:12px;border-top:3px solid '+(mixCoherent?'#38a169':'#e53e3e')+'">'
+    +'<div style="font-size:10px;color:#a0aec0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Mix ADN</div>'
+    +'<div style="font-size:13px;font-weight:700;color:'+(mixCoherent?'#68d391':'#fc8181')+'">'+mixProfile+'</div>'
+    +'<div style="font-size:20px;margin-top:4px">'+(mixCoherent?'✅':'⚠️')+'</div>'
+    +'</div>'
+    +'</div>'
+    +'<div style="background:'+(mixCoherent?'rgba(56,161,105,.1)':'rgba(245,101,101,.1)')+';border-left:4px solid '+(mixCoherent?'#38a169':'#e53e3e')+';padding:10px 14px;border-radius:0 8px 8px 0;font-size:13px;color:#e2e8f0;line-height:1.6">'+mixAdvice+'</div>';
+
+  var identHtml = '<div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'
+    // Points forts
+    +'<div>'
+    +'<div style="font-size:11px;color:#68d391;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px">✅ Points forts identitaires</div>'
+    +strengths.map(function(s){ return '<div style="display:flex;align-items:start;gap:7px;margin-bottom:7px;font-size:12px;line-height:1.5"><span style="color:#68d391;font-size:14px;margin-top:-1px">▸</span><span>'+s+'</span></div>'; }).join('')
+    +'</div>'
+    // Points faibles
+    +'<div>'
+    +'<div style="font-size:11px;color:#fc8181;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px">⚡ Points faibles identitaires</div>'
+    +weaknesses.map(function(s){ return '<div style="display:flex;align-items:start;gap:7px;margin-bottom:7px;font-size:12px;line-height:1.5"><span style="color:#fc8181;font-size:14px;margin-top:-1px">▸</span><span>'+s+'</span></div>'; }).join('')
+    +'</div>'
+    +'</div>'
+    // Principes
+    +'<div style="margin-top:14px;padding-top:14px;border-top:1px solid #2d4a7a">'
+    +'<div style="font-size:11px;color:#63b3ed;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px">🧭 Principes collectifs à renforcer</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    +principles.map(function(p,i){ return '<div style="background:#2d3748;border-radius:8px;padding:9px 11px;font-size:12px;line-height:1.5"><span style="color:#63b3ed;font-weight:700;margin-right:6px">'+(i+1)+'.</span>'+p+'</div>'; }).join('')
+    +'</div>'
+    +'</div>';
+
+  var trainHtml = trainings.map(function(t){
+    return '<div style="background:#2d3748;border-radius:10px;padding:13px;margin-bottom:10px;display:flex;gap:12px;align-items:start">'
+      +'<div style="font-size:26px;line-height:1;flex-shrink:0">'+t.ico+'</div>'
+      +'<div>'
+      +'<div style="font-size:13px;font-weight:700;color:'+dominant.color+';margin-bottom:4px">'+t.t+'</div>'
+      +'<div style="font-size:12px;color:#a0aec0;line-height:1.6">'+t.d+'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>ADN de Jeu</title>'
+    +'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"Segoe UI",Arial,sans-serif;background:#0e1a2e;color:#e2e8f0;min-height:100vh}.toolbar{background:#1a202c;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;position:sticky;top:0;z-index:100;gap:10px}.toolbar h2{margin:0;font-size:15px;font-weight:700;flex:1}.tbtn{border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:13px;font-weight:700;color:#fff}.wrap{max-width:820px;margin:0 auto;padding:16px}.card{background:#1a2d4e;border:1px solid #2d4a7a;border-radius:12px;padding:18px;margin-bottom:14px}.card h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#63b3ed;margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid #2d4a7a}.lbl{font-size:11px;color:#63b3ed;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:5px}.val{font-size:13px;color:#e2e8f0;line-height:1.7;margin-bottom:12px}@media print{.toolbar{display:none}}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:600px){.grid2{grid-template-columns:1fr}}</style></head><body>'
+    +'<div class="toolbar"><h2>🧬 ADN de Jeu &nbsp;·&nbsp; Union Rochefortoise &nbsp;·&nbsp; '+formation+(adv?' &nbsp;vs&nbsp; '+adv:'')+'</h2>'
+    +'<button class="tbtn" style="background:#276749" onclick="window.print()">🖨 Imprimer</button>'
+    +'<button class="tbtn" style="background:#c53030;margin-left:6px" onclick="window.close()">✕</button></div>'
+    +'<div class="wrap">'
+
+    // CARTE DOMINANTE
+    +'<div class="card" style="border-color:'+dominant.color+';border-width:2px;border-left-width:6px">'
+    +'<div style="display:flex;align-items:center;gap:16px">'
+    +'<div style="font-size:52px;line-height:1">'+dominant.ico+'</div>'
+    +'<div style="flex:1">'
+    +'<div style="font-size:11px;color:#a0aec0;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">ADN dominant · '+tpls.length+' titulaires · '+formation+'</div>'
+    +'<div style="font-size:28px;font-weight:900;color:'+dominant.color+'">'+dominant.label+'</div>'
+    +'<div style="font-size:12px;color:#a0aec0;margin-top:3px">2e tendance : '+second.ico+' '+second.label+' ('+finals[second.id]+'%)</div>'
+    +'</div>'
+    +'<div style="text-align:center;background:rgba(255,255,255,.04);border-radius:10px;padding:10px 18px">'
+    +'<div style="font-size:48px;font-weight:900;color:'+dominant.color+';line-height:1">'+finals[dominant.id]+'<span style="font-size:20px">%</span></div>'
+    +'<div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Score ADN</div>'
+    +'</div>'
+    +'</div>'
+    +'</div>'
+
+    // BARRES
+    +'<div class="card"><h3>📊 Proximité avec chaque ADN</h3>'+barsHtml+'</div>'
+
+    // POURQUOI
+    +'<div class="card"><h3>🔍 Analyse — Pourquoi cet ADN ?</h3>'
+    +'<div class="lbl">Structure tactique</div><div class="val">'+domE.struct+'</div>'
+    +'<div class="lbl">Profils joueurs</div><div class="val">'+domE.profils+'</div>'
+    +'<div class="lbl">Comportements collectifs</div><div class="val" style="margin-bottom:0">'+domE.collectif+'</div>'
+    +'</div>'
+
+    // COHÉRENCE GLOBALE
+    +'<div class="card" style="border-color:'+cohColor+';border-left-width:5px"><h3>📐 Score de cohérence globale du projet de jeu</h3>'+cohHtml+'</div>'
+
+    // MIX ADN
+    +'<div class="card"><h3>🔀 Analyse du mélange ADN — Principal / Secondaire</h3>'+mixHtml+'</div>'
+
+    // IDENTITÉ : FORCES / FAIBLESSES / PRINCIPES
+    +'<div class="card"><h3>🎨 Identité de l\'équipe — Forces · Faiblesses · Principes</h3>'+identHtml+'</div>'
+
+    // CONTRADICTIONS
+    +'<div class="card"><h3>⚠️ Contradictions tactiques détectées</h3>'+ctrdHtml+'</div>'
+
+    // ENTRAÎNEMENTS
+    +'<div class="card"><h3>🏋️ Séances d\'entraînement recommandées</h3>'
+    +'<div style="font-size:12px;color:#a0aec0;margin-bottom:12px">4 séances types adaptées à l\'ADN <strong style="color:'+dominant.color+'">'+dominant.label+'</strong> de cette composition</div>'
+    +trainHtml
+    +'</div>'
+
+    +'<div style="text-align:center;padding:10px;color:#4a5568;font-size:11px">Analyse générée sur '+tpls.length+' titulaires · '+formation+' · Union Rochefortoise · ScoutDB v4</div>'
+    +'</div></body></html>';
+
+  var w=window.open('','_blank','width=860,height=780,scrollbars=yes,resizable=yes');
+  if(w){ w.document.write(html); w.document.close(); }
+  else {
+    var old=document.getElementById('adn-ol'); if(old)old.remove();
+    var ol=document.createElement('div');
+    ol.id='adn-ol';
+    ol.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:#0e1a2e;overflow:auto';
+    var closeB=document.createElement('button');
+    closeB.textContent='✕ Fermer';
+    closeB.style.cssText='position:fixed;top:12px;right:12px;z-index:10001;background:#c53030;color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-weight:700;font-size:14px';
+    closeB.onclick=function(){ol.remove();};
+    var fr=document.createElement('iframe'); fr.style.cssText='width:100%;height:100%;border:none'; fr.srcdoc=html;
+    ol.appendChild(closeB); ol.appendChild(fr); document.body.appendChild(ol);
+  }
+};
+
+// ═══════════════════════════════════════════════════
 // INIT — Observer + polling
 // ═══════════════════════════════════════════════════
 var _injected=false;
@@ -3372,7 +3830,7 @@ function tryInject(){
     _injected=false;
     injectSection();
   }
-  if(!document.getElementById('adv-pdf-btn')){
+  if(!document.getElementById('adv-pdf-btn')||!document.getElementById('adv-adn-btn')){
     addPdfBtn();
   }
   if(!_injected && document.getElementById('adv-comp-sec')){
