@@ -2957,57 +2957,56 @@ function pdfPitchAdv(){
   return pitchSVG(_adv.form, 240, 320, '#c53030', _adv.joueurs, true);
 }
 
-// Terrain équipe domicile pour PDF — on lit depuis le DOM (titulaires)
+// Terrain équipe domicile pour PDF — clone le SVG déjà rendu par l'app
 function pdfPitchHome(){
   try{
+    var mt = document.getElementById('p-mt');
+    if(!mt) return '<p style="color:#999;font-size:12px;text-align:center;padding:16px">Onglet match non disponible</p>';
+
+    // Cherche tous les SVG dans l'onglet match
+    var svgs = mt.querySelectorAll('svg');
+    var appSvg = null;
+    for(var i=0; i<svgs.length; i++){
+      var s = svgs[i];
+      // Exclure notre terrain adverse injecté
+      var advWrap = document.getElementById('adv-pitch-wrap');
+      if(advWrap && advWrap.contains(s)) continue;
+      // Prendre le premier SVG qui appartient à l'app (le terrain équipe)
+      appSvg = s;
+      break;
+    }
+
+    if(appSvg){
+      var clone = appSvg.cloneNode(true);
+      // Ajuster pour le PDF
+      clone.setAttribute('width','100%');
+      clone.style.cssText = 'max-width:240px;display:block;margin:auto;border-radius:6px';
+      // Supprimer l'interactivité
+      clone.querySelectorAll('[onclick]').forEach(function(el){ el.removeAttribute('onclick'); });
+      clone.querySelectorAll('[style*="cursor:pointer"]').forEach(function(el){ el.style.cursor='default'; });
+      return clone.outerHTML;
+    }
+  }catch(e){}
+
+  // Fallback texte si le SVG n'est pas trouvable
+  try{
     var fk = gv('mform') || (typeof curMatch!=='undefined'?curMatch.formation:'');
-    var FORM = (typeof FORMATIONS!=='undefined') ? FORMATIONS : {};
-    var layout = FORM[fk];
-    if(!layout||!layout.pos) return '<p style="color:#999;font-size:12px;text-align:center;padding:16px">Formation non renseignée</p>';
-
-    var pMap = {};
-    try{ if(typeof players!=='undefined') players.forEach(function(p){ pMap[String(p.id)]=p; }); }catch(e){}
-
+    var html = '<div style="background:#276749;border-radius:6px;padding:16px;max-width:240px;margin:auto">'
+      +'<div style="color:#fff;font-weight:700;font-size:13px;margin-bottom:10px;text-align:center">'+fk+'</div>';
     var tit = (typeof curMatch!=='undefined'&&curMatch.tit) ? curMatch.tit : {};
-    var W=240, H=320, R=13;
-    var circles = '';
-
-    layout.pos.forEach(function(p){
-      var pk = p.k;
-      var pd = tit[pk] || tit[String(pk)] || {};
-      var plId = pd.id || pd.playerId || pd.pid;
-      var pl = plId ? pMap[String(plId)] : null;
-      var name = pl ? ((pl.prenom?pl.prenom.charAt(0)+'.':'')+' '+pl.nom).trim() : (pd.nom||'');
-      var num  = pd.num || pd.numero || (pl ? pl.numero||'' : '') || '';
-      var disp = num ? String(num) : pk;
-
-      var cx = p.x/100*W;
-      // Pour notre équipe : attaque en haut du schéma (y inversé)
-      var cy = (1 - p.y/100)*H;
-      var sn = name.length>9?name.substring(0,8)+'…':name;
-
-      circles += '<g>'
-        +'<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="#2b6cb0" stroke="#fff" stroke-width="2"/>'
-        +'<text x="'+cx+'" y="'+(cy+1)+'" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="9" font-weight="bold">'+disp+'</text>';
-      if(name) circles += '<text x="'+cx+'" y="'+(cy+R+7)+'" text-anchor="middle" fill="#fff" font-size="7" font-weight="600">'+sn+'</text>';
-      circles += '</g>';
+    var pMap={};
+    try{ if(typeof players!=='undefined') players.forEach(function(p){pMap[String(p.id)]=p;}); }catch(e){}
+    Object.values(tit).forEach(function(pd){
+      if(!pd) return;
+      var plId = pd.id||pd.playerId||pd.pid;
+      var pl = plId?pMap[String(plId)]:null;
+      var name = pl?((pl.prenom?pl.prenom+' ':'')+pl.nom):(pd.nom||'');
+      if(name) html+='<div style="color:#fff;font-size:11px;padding:2px 0">'+name+'</div>';
     });
-
-    var hw=W/2, hh=H/2;
-    return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:240px;display:block;margin:auto;border-radius:6px" xmlns="http://www.w3.org/2000/svg">'
-      +'<rect width="'+W+'" height="'+H+'" fill="#276749" rx="6"/>'
-      +'<rect x="10" y="8" width="'+(W-20)+'" height="'+(H-16)+'" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>'
-      +'<line x1="10" y1="'+hh+'" x2="'+(W-10)+'" y2="'+hh+'" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>'
-      +'<circle cx="'+hw+'" cy="'+hh+'" r="32" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>'
-      +'<circle cx="'+hw+'" cy="'+hh+'" r="2.5" fill="rgba(255,255,255,0.5)"/>'
-      +'<rect x="'+(hw-50)+'" y="8" width="100" height="52" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>'
-      +'<rect x="'+(hw-30)+'" y="8" width="60" height="22" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>'
-      +'<rect x="'+(hw-50)+'" y="'+(H-60)+'" width="100" height="52" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>'
-      +'<rect x="'+(hw-30)+'" y="'+(H-30)+'" width="60" height="22" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>'
-      + circles
-      +'</svg>';
+    html+='</div>';
+    return html;
   }catch(e){
-    return '<p style="color:#999;font-size:12px;text-align:center;padding:16px">Données équipe non disponibles</p>';
+    return '<p style="color:#999;font-size:12px;text-align:center;padding:16px">Données non disponibles</p>';
   }
 }
 
