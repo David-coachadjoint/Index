@@ -1769,9 +1769,10 @@ function renderDataSubstitutes(ms){
 }
 // ═══════ ANALYSE TACTIQUE — DATA SCIENTIST ═══════
 function renderDataTacticalAnalysis(ms){
-  if(!ms||ms.length<2) return '';
+  var placeholder='<div style="background:linear-gradient(135deg,#1a1f35,#232945);border:1.5px solid #3a4070;border-radius:16px;padding:32px;margin:18px 0;text-align:center"><div style="font-size:22px;margin-bottom:10px">🧠 Analyse Tactique Data Scientist</div><div style="color:#a0aec0;font-size:14px;line-height:1.7">Cette section s\'enrichit automatiquement au fur et à mesure que tu saisis des matchs avec scores.<br><br><span style="color:#63b3ed">⚽ Efficacité par système</span> &nbsp;·&nbsp; <span style="color:#68d391">⚔️ Duels tactiques</span> &nbsp;·&nbsp; <span style="color:#f6c90e">🏟 Domicile/Extérieur</span> &nbsp;·&nbsp; <span style="color:#fc8181">🏷 Profils PF</span><br><span style="color:#b794f4">👥 Meilleures associations</span> &nbsp;·&nbsp; <span style="color:#76e4f7">📈 Tendances</span> &nbsp;·&nbsp; <span style="color:#fbb6ce">📐 Indice cohérence /100</span> &nbsp;·&nbsp; <span style="color:#fbd38d">🎯 Recommandations</span><br><br><span style="font-size:12px;color:#718096">Minimum 2 matchs avec scores requis pour activer l\'analyse.</span></div></div>';
+  if(!ms||ms.length<2) return placeholder;
   var scoredMs=ms.filter(function(m){ return m.scoreUR!=null&&m.scoreAdv!=null; });
-  if(!scoredMs.length) return '';
+  if(!scoredMs.length) return placeholder;
   function res(m){ return m.scoreUR>m.scoreAdv?'w':m.scoreUR===m.scoreAdv?'d':'l'; }
   function pts(m){ return m.scoreUR>m.scoreAdv?3:m.scoreUR===m.scoreAdv?1:0; }
   function ppm(arr){ return arr.length?(arr.reduce(function(a,m){return a+pts(m);},0)/arr.length).toFixed(2):'0'; }
