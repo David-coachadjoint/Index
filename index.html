@@ -1152,6 +1152,42 @@ function openDt(id){
   html+='<div class="sec"><div class="stit">🧠 Mentaux</div>';SKM.forEach(s=>{const v=p.skills?p.skills[s.id]||0:0;html+='<div class="skr"><div class="skl" style="width:140px">'+s.lb+'</div><div class="skt"><div class="skf" style="width:'+v*10+'%;background:'+bC(v)+'"></div></div><div class="skv">'+v+'</div></div>';});html+='</div>';
   html+='<div class="sec" style="border-left:3px solid #a78bfa"><div class="stit" style="color:#a78bfa">🧩 Tactique</div>';SKTac.forEach(s=>{const v=p.skills?p.skills[s.id]||0:0;const tip={tac_pressing:'Intensité et timing du pressing haut et bas',tac_transition_off:'Vitesse de transition vers l\'attaque après récupération',tac_transition_def:'Organisation défensive après perte de balle',tac_placement:'Sens du positionnement en et hors possession',tac_repli:'Vitesse et discipline du retour défensif',tac_couverture:'Aide aux coéquipiers, soutien en zone',tac_hors_jeu:'Maîtrise et utilisation du piège hors-jeu',tac_duel_zone:'Efficacité dans les duel de zone (pas individuel)',tac_lecture_jeu:'Anticipation et lecture des intentions adverses',tac_contre:'Efficacité sur les contre-attaques rapides'}[s.id]||'';html+='<div class="skr" title="'+tip+'"><div class="skl" style="width:140px">'+s.lb+'</div><div class="skt"><div class="skf" style="width:'+v*10+'%;background:'+bC(v)+'"></div></div><div class="skv">'+v+'</div></div>';});html+='</div>';
   if(p.forces||p.progres){html+='<div class="sec"><div class="stit">📝 Notes</div>';if(p.forces)html+='<div style="margin-bottom:9px"><div style="font-size:10px;color:#63b3ed;text-transform:uppercase;margin-bottom:3px">Forces</div><div style="font-size:13px">'+p.forces+'</div></div>';if(p.progres)html+='<div><div style="font-size:10px;color:#f6c90e;text-transform:uppercase;margin-bottom:3px">Progression</div><div style="font-size:13px">'+p.progres+'</div></div>';html+='</div>';}
+  // ── Compétences de poste ──────────────────────────────────────
+  if(p.competencesPoste && p.position && window._CPOSTE){
+    var _cp=window._CPOSTE;
+    var _cat=_cp.getCategory(p.position);
+    if(_cat){
+      var _info=_cp.CAT_INFO[_cat];
+      var _criteria=_cp.CRITERIA[_cat];
+      var _vals=p.competencesPoste;
+      // calcul moyenne
+      var _sum=0,_cnt=0;
+      _criteria.forEach(function(c){if(_vals[c]!==undefined){_sum+=_vals[c];_cnt++;}});
+      var _avg=_cnt?Math.round(_sum/_cnt*10)/10:0;
+      var _avgColor=_avg>=7?'#68d391':_avg>=5?'#63b3ed':_avg>=3?'#f6c90e':'#fc8181';
+      // points forts (top 3 ≥ 6) et faibles (bottom 3 ≤ 4)
+      var _sorted=_criteria.map(function(c){return{c:c,v:_vals[c]!==undefined?_vals[c]:0};}).sort(function(a,b){return b.v-a.v;});
+      var _forts=_sorted.filter(function(x){return x.v>=7;}).slice(0,3);
+      var _faibles=_sorted.filter(function(x){return x.v<=4;}).slice(-3).reverse();
+      html+='<div class="sec" style="border-left:3px solid '+_info.color+'">';
+      html+='<div class="stit" style="color:'+_info.color+'">'+_info.ico+' Compétences de poste — '+_info.label+'</div>';
+      // badge moyenne + résumé forts/faibles
+      html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:13px;align-items:center">';
+      html+='<span style="background:'+_avgColor+'22;color:'+_avgColor+';border:1px solid '+_avgColor+'55;padding:4px 13px;border-radius:20px;font-size:12px;font-weight:700">Moy. poste : '+_avg+' / 10</span>';
+      if(_forts.length){html+='<span style="font-size:11px;color:#718096">💪 Points forts :</span>';_forts.forEach(function(x){html+='<span style="background:rgba(104,211,145,.12);color:#68d391;border:1px solid rgba(104,211,145,.3);padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700">'+x.c+' <b>'+x.v+'</b></span>';});}
+      if(_faibles.length){html+='<span style="font-size:11px;color:#718096;margin-left:4px">⚠️ À travailler :</span>';_faibles.forEach(function(x){html+='<span style="background:rgba(252,129,129,.12);color:#fc8181;border:1px solid rgba(252,129,129,.3);padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700">'+x.c+' <b>'+x.v+'</b></span>';});}
+      html+='</div>';
+      // barres pour chaque critère
+      _criteria.forEach(function(c){
+        var v=_vals[c]!==undefined?_vals[c]:0;
+        var bc2=v>=7?'#68d391':v>=5?'#63b3ed':v>=3?'#f6c90e':'#fc8181';
+        html+='<div class="cposte-det-row"><div class="cposte-det-lbl">'+c+'</div>'+
+          '<div class="cposte-det-bar"><div class="cposte-det-fill" style="width:'+(v*10)+'%;background:'+bc2+'"></div></div>'+
+          '<div class="cposte-det-val" style="color:'+bc2+'">'+v+'</div></div>';
+      });
+      html+='</div>';
+    }
+  }
   html+='<div class="btnrow"><button class="btn btn-d btn-sm" onclick="delPl(\''+p.id+'\')">🗑</button><button class="btn btn-o btn-sm" onclick="expPDF(\''+p.id+'\')">📄 PDF</button><button class="btn btn-o btn-sm" onclick="closeMod(\'m-dt\')">Fermer</button><button class="btn btn-p" style="flex:1" onclick="openEdit(\''+p.id+'\')">✏️ Modifier</button></div>';
   document.getElementById('dtc').innerHTML=html;openMod('m-dt');
 }
@@ -2779,6 +2815,8 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
     ATT:['Finition','Appels de balle','Jeu dos au but','1v1 offensif','Sens du placement','Jeu de tête offensif','Pressing offensif','Création d\'espaces','Prise de décision','Mental de buteur']
   };
   function getCategory(v){return v?(POS_CAT[v]||null):null;}
+  /* Exposition globale pour openDt() */
+  window._CPOSTE={POS_CAT:POS_CAT,CAT_INFO:CAT_INFO,CRITERIA:CRITERIA,getCategory:getCategory};
 
   /* CSS */
   var s=document.createElement('style');
@@ -2943,7 +2981,7 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
     var dtc=document.getElementById('dtc');
     if(!dtc)return;
     function buildDetBlock(j){
-      var cat=getCategory(j.poste);if(!cat)return null;
+      var cat=getCategory(j.position);if(!cat)return null;
       var info=CAT_INFO[cat],criteria=CRITERIA[cat],vals=j.competencesPoste;
       var sum=0,cnt=0;
       criteria.forEach(function(c){if(vals[c]!==undefined){sum+=vals[c];cnt++;}});
@@ -2968,7 +3006,7 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
       if(typeof players==='undefined'||!players.length)return;
       var txt=dtc.textContent;
       var j=players.find(function(p){return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);});
-      if(!j||!j.competencesPoste||!j.poste)return;
+      if(!j||!j.competencesPoste||!j.position)return;
       var block=buildDetBlock(j);
       if(block)dtc.appendChild(block);
     }
