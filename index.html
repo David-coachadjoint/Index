@@ -2582,6 +2582,38 @@ function expPDF(id){
   body+='<div class="pdf-sec"><h3>🧠 Mentaux</h3>'+SKM.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#2563eb':v>=4?'#d97706':'#dc2626';return'<div class="pdf-br"><div class="pdf-brl">'+s.lb+'</div><div class="pdf-brt"><div class="pdf-brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="pdf-brv">'+v+'</div></div>';}).join('')+'</div>';
   body+='<div class="pdf-sec" style="border-left:3px solid #7c3aed"><h3 style="color:#7c3aed">🧩 Tactique</h3>'+SKTac.map(s=>{const v=p.skills?p.skills[s.id]||0:0;const col=v>=8?'#16a34a':v>=6?'#7c3aed':v>=4?'#d97706':'#dc2626';return'<div class="pdf-br"><div class="pdf-brl">'+s.lb+'</div><div class="pdf-brt"><div class="pdf-brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="pdf-brv">'+v+'</div></div>';}).join('')+'</div>';
   if(p.forces||p.progres){body+='<div class="pdf-sec"><h3>📝 Notes</h3>'+(p.forces?'<p style="margin-bottom:7px"><strong style="color:#16a34a">Forces :</strong> '+p.forces+'</p>':'')+(p.progres?'<p><strong style="color:#d97706">Progression :</strong> '+p.progres+'</p>':'')+'</div>';}
+  // ── Compétences de poste ──
+  if(p.competencesPoste && p.position && window._CPOSTE){
+    const _cp=window._CPOSTE;
+    const _cat=_cp.getCategory(p.position);
+    if(_cat){
+      const _info=_cp.CAT_INFO[_cat];
+      const _criteria=_cp.CRITERIA[_cat];
+      const _vals=p.competencesPoste;
+      let _sum=0,_cnt=0;
+      _criteria.forEach(c=>{if(_vals[c]!==undefined){_sum+=_vals[c];_cnt++;}});
+      const _avg=_cnt?Math.round(_sum/_cnt*10)/10:0;
+      const _avgCol=_avg>=7?'#16a34a':_avg>=5?'#2563eb':_avg>=3?'#d97706':'#dc2626';
+      const _sorted=_criteria.map(c=>({c,v:_vals[c]!==undefined?_vals[c]:0})).sort((a,b)=>b.v-a.v);
+      const _forts=_sorted.filter(x=>x.v>=7).slice(0,3);
+      const _faibles=[..._sorted].reverse().filter(x=>x.v<=4).slice(0,3);
+      body+='<div class="pdf-sec" style="border-left:3px solid '+_info.color+'">';
+      body+='<h3 style="color:'+_info.color+'">'+_info.ico+' Compétences de poste — '+_info.label+'</h3>';
+      body+='<p style="font-size:12px;margin-bottom:10px">Moyenne : <strong style="color:'+_avgCol+'">'+_avg+' / 10</strong></p>';
+      if(_forts.length||_faibles.length){
+        body+='<div style="display:flex;gap:18px;margin-bottom:12px;flex-wrap:wrap">';
+        if(_forts.length){body+='<div><div style="font-size:10px;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:5px">💪 Points forts</div>'+_forts.map(x=>'<div style="font-size:12px;padding:3px 0;color:#16a34a">✓ '+x.c+' <strong>('+x.v+')</strong></div>').join('')+'</div>';}
+        if(_faibles.length){body+='<div><div style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;margin-bottom:5px">⚠️ À travailler</div>'+_faibles.map(x=>'<div style="font-size:12px;padding:3px 0;color:#dc2626">↑ '+x.c+' <strong>('+x.v+')</strong></div>').join('')+'</div>';}
+        body+='</div>';
+      }
+      body+=_criteria.map(c=>{
+        const v=_vals[c]!==undefined?_vals[c]:0;
+        const col=v>=7?'#16a34a':v>=5?'#2563eb':v>=3?'#d97706':'#dc2626';
+        return'<div class="pdf-br"><div class="pdf-brl">'+c+'</div><div class="pdf-brt"><div class="pdf-brf" style="width:'+v*10+'%;background:'+col+'"></div></div><div class="pdf-brv">'+v+'</div></div>';
+      }).join('');
+      body+='</div>';
+    }
+  }
   body+='<div class="pdf-ft">Généré le '+new Date().toLocaleDateString('fr-FR')+' par '+(CU?CU.name:'?')+' · UR Scout DB v4</div>';
   // Open PDF view
   showPDFView(body,p.prenom+' '+p.nom);
@@ -2976,46 +3008,7 @@ document.addEventListener('click',function(e){if(e.target.closest('[onclick*="cl
   });
 
 
-  /* Fiche détail #dtc — triple retry */
-  document.addEventListener('DOMContentLoaded',function(){
-    var dtc=document.getElementById('dtc');
-    if(!dtc)return;
-    function buildDetBlock(j){
-      var cat=getCategory(j.position);if(!cat)return null;
-      var info=CAT_INFO[cat],criteria=CRITERIA[cat],vals=j.competencesPoste;
-      var sum=0,cnt=0;
-      criteria.forEach(function(c){if(vals[c]!==undefined){sum+=vals[c];cnt++;}});
-      var avg=cnt?Math.round(sum/cnt*10)/10:0;
-      var block=document.createElement('div');
-      block.className='cposte-det-block sec';
-      block.style.borderLeft='3px solid '+info.color;
-      block.innerHTML=
-        '<div class="stit" style="color:'+info.color+'">'+info.ico+' Compétences — '+info.label+'</div>'+
-        '<div style="font-size:11px;color:#718096;margin-bottom:11px">Moyenne poste : <strong style="color:'+info.color+'">'+avg+' / 10</strong></div>'+
-        criteria.map(function(c){
-          var v=vals[c]!==undefined?vals[c]:0;
-          return '<div class="cposte-det-row"><div class="cposte-det-lbl">'+c+'</div>'+
-            '<div class="cposte-det-bar"><div class="cposte-det-fill" style="width:'+(v*10)+'%;background:'+info.color+'"></div></div>'+
-            '<div class="cposte-det-val">'+v+'</div></div>';
-        }).join('');
-      return block;
-    }
-    function tryInjectDetail(){
-      if(!dtc.children.length)return;
-      if(dtc.querySelector('.cposte-det-block'))return;
-      if(typeof players==='undefined'||!players.length)return;
-      var txt=dtc.textContent;
-      var j=players.find(function(p){return p.nom&&p.prenom&&txt.includes(p.prenom)&&txt.includes(p.nom);});
-      if(!j||!j.competencesPoste||!j.position)return;
-      var block=buildDetBlock(j);
-      if(block)dtc.appendChild(block);
-    }
-    new MutationObserver(function(){
-      setTimeout(tryInjectDetail,200);
-      setTimeout(tryInjectDetail,800);
-      setTimeout(tryInjectDetail,2500);
-    }).observe(dtc,{childList:true});
-  });
+  /* Fiche détail #dtc — rendu intégré directement dans openDt() — voir section openDt */
 
 
   /* Cartes #pgrid */
