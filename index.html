@@ -1610,6 +1610,8 @@ function renderData(){
 }
 
 function renderDataQH(ms){
+  const bg=ms.reduce((a,m)=>a+(m.scoreUR||0),0);
+  const bc=ms.reduce((a,m)=>a+(m.scoreAdv||0),0);
   const ranges=[[0,15],[15,30],[30,45],[45,60],[60,75],[75,90]];
   const labels=['0-15','15-30','30-45','45-60','60-75','75-90'];
   const ur=ranges.map(()=>0),adv=ranges.map(()=>0);
