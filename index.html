@@ -1591,20 +1591,21 @@ function renderData(){
   html+='<div class="sbox"><div class="snum" style="font-size:18px">'+(ms.length?(bg/ms.length).toFixed(1):'0')+'</div><div class="slbl">Buts/match</div></div>';
   html+='<div class="sbox" style="border-left-color:#a78bfa"><div class="snum" style="color:#a78bfa">'+cleansheets+'</div><div class="slbl">Clean sheets</div></div>';
   html+='</div></div>';
+  function safe(fn,label){try{return fn();}catch(e){console.error('DATA section error ['+label+']:',e);return '<div style="color:#fc8181;padding:8px;font-size:12px">⚠️ Erreur section '+label+' : '+e.message+'</div>';}}
   // Quart d'heure cumulé
-  html+=renderDataQH(ms);
+  html+=safe(function(){return renderDataQH(ms);},'QH');
   // Top buteurs / passeurs
-  html+=renderDataScorers(ms);
+  html+=safe(function(){return renderDataScorers(ms);},'Scorers');
   // Temps de jeu
-  html+=renderDataPlaytime(ms);
+  html+=safe(function(){return renderDataPlaytime(ms);},'Playtime');
   // Performance par formation
-  html+=renderDataFormations(ms);
+  html+=safe(function(){return renderDataFormations(ms);},'Formations');
   // Performance par contexte
-  html+=renderDataContext(ms);
+  html+=safe(function(){return renderDataContext(ms);},'Context');
   // Impact remplaçants
-  html+=renderDataSubstitutes(ms);
+  html+=safe(function(){return renderDataSubstitutes(ms);},'Substitutes');
   // Analyse tactique data scientist
-  html+=renderDataTacticalAnalysis(ms);
+  html+=safe(function(){return renderDataTacticalAnalysis(ms);},'TacticalAnalysis');
   el.innerHTML=html;
 }
 
