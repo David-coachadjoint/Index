@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachOS — Union Rochefortoise</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+:root {
+  --bg:#07090f; --bg2:#0d1220; --bg3:#111827; --card:#0f1624;
+  --border:#1a2540; --border2:#243358;
+  --blue:#3b82f6; --blue2:#2563eb; --cyan:#06b6d4;
+  --indigo:#6366f1; --green:#10b981; --orange:#f59e0b; --red:#ef4444;
+  --txt:#e2e8f0; --txt2:#94a3b8; --txt3:#475569;
+  --glow:rgba(59,130,246,.25);
+  --sidebar-w:240px; --sidebar-c:64px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--blue)}
+
+/* SIDEBAR */
+#sidebar{position:fixed;top:0;left:0;height:100vh;width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .25s cubic-bezier(.4,0,.2,1);z-index:100;overflow:hidden}
+#sidebar.collapsed{width:var(--sidebar-c)}
+.sb-logo{display:flex;align-items:center;gap:12px;padding:20px 16px 16px;border-bottom:1px solid var(--border);min-height:72px;flex-shrink:0}
+.sb-logo-icon{width:36px;height:36px;flex-shrink:0}
+.sb-logo-text{white-space:nowrap;overflow:hidden}
+.sb-logo-text .cn{font-size:11px;font-weight:700;color:var(--txt);letter-spacing:.08em;text-transform:uppercase;line-height:1.2}
+.sb-logo-text .an{font-size:10px;color:var(--blue);letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+.sb-nav{flex:1;padding:12px 0;overflow-y:auto;overflow-x:hidden}
+.sb-lbl{font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.12em;text-transform:uppercase;padding:16px 20px 6px;white-space:nowrap;transition:opacity .2s}
+#sidebar.collapsed .sb-lbl{opacity:0}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-radius:8px;margin:1px 8px;transition:background .15s,color .15s;white-space:nowrap;position:relative;color:var(--txt2);font-size:13px;font-weight:500}
+.nav-item:hover{background:var(--border);color:var(--txt)}
+.nav-item.active{background:rgba(59,130,246,.15);color:var(--blue)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--blue);border-radius:0 3px 3px 0}
+.nav-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center}
+.nav-lbl{overflow:hidden;transition:opacity .2s}
+#sidebar.collapsed .nav-lbl{opacity:0;width:0}
+.nav-badge{margin-left:auto;background:var(--blue2);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;transition:opacity .2s}
+#sidebar.collapsed .nav-badge{opacity:0}
+.sb-toggle{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--txt2);font-size:12px;transition:color .15s;flex-shrink:0}
+.sb-toggle:hover{color:var(--txt)}
+
+/* MAIN */
+#main{margin-left:var(--sidebar-w);flex:1;transition:margin-left .25s cubic-bezier(.4,0,.2,1);min-height:100vh;display:flex;flex-direction:column}
+#main.expanded{margin-left:var(--sidebar-c)}
+
+/* TOPBAR */
+#topbar{position:sticky;top:0;z-index:50;background:rgba(7,9,15,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.page-title{font-size:16px;font-weight:600;color:var(--txt)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.tb-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border2);background:var(--card);color:var(--txt2);font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;transition:all .15s}
+.tb-btn:hover{border-color:var(--blue);color:var(--txt);background:rgba(59,130,246,.1)}
+.tb-btn.primary{background:var(--blue2);border-color:var(--blue);color:#fff}
+.tb-btn.primary:hover{background:var(--blue)}
+#search-wrap{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:border-color .15s}
+#search-wrap:focus-within{border-color:var(--blue)}
+#search-input{background:none;border:none;outline:none;color:var(--txt);font-size:13px;width:200px}
+#search-input::placeholder{color:var(--txt3)}
+
+/* CONTENT */
+#content{flex:1;padding:24px;overflow-y:auto}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.ga{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(59,130,246,.4),transparent);opacity:0;transition:opacity .2s}
+.card:hover::before{opacity:1}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;color:var(--txt)}
+.card-sub{font-size:11px;color:var(--txt2);margin-top:2px}
+
+/* STAT CARDS */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:all .2s}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.stat-card .glw{position:absolute;width:80px;height:80px;border-radius:50%;top:-20px;right:-20px;opacity:.15;filter:blur(20px)}
+.stat-val{font-size:32px;font-weight:800;line-height:1;margin:8px 0 4px}
+.stat-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--txt2)}
+.stat-dlta{font-size:11px;color:var(--green);margin-top:8px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.04em}
+.bb{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.25)}
+.bc{background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.25)}
+.bg{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25)}
+.bo{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.25)}
+.bi{background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.25)}
+.bx{background:rgba(100,116,139,.15);color:#94a3b8;border:1px solid rgba(100,116,139,.2)}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sec-title{font-size:15px;font-weight:700;color:var(--txt)}
+.sec-sub{font-size:12px;color:var(--txt2);margin-top:2px}
+
+/* FILTER TABS */
+.ftabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.ftab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--txt2);background:var(--card);transition:all .15s}
+.ftab:hover{border-color:var(--blue);color:var(--txt)}
+.ftab.active{background:rgba(59,130,246,.15);border-color:var(--blue);color:var(--blue)}
+
+/* ─── MEDIA CARD (video-first design) ─── */
+.mc{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+  cursor:pointer;position:relative;
+}
+.mc:hover{border-color:var(--blue);box-shadow:0 0 0 1px rgba(59,130,246,.3),0 8px 32px rgba(0,0,0,.4);transform:translateY(-3px)}
+.mc:hover .mc-overlay{opacity:1}
+.mc-thumb{
+  width:100%;aspect-ratio:16/9;
+  background:linear-gradient(135deg,#0d1a2e,#111f3a);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.mc-thumb-bg{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:52px;opacity:.08;
+  user-select:none;
+}
+.mc-avatar{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;
+  border:2px solid rgba(255,255,255,.1);
+  position:relative;z-index:1;
+  flex-shrink:0;
+}
+.mc-overlay{
+  position:absolute;inset:0;background:rgba(10,16,30,.75);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .2s;
+}
+.mc-play-btn{
+  width:52px;height:52px;border-radius:50%;
+  background:var(--blue);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  box-shadow:0 0 24px rgba(59,130,246,.6);
+  transform:scale(.9);transition:transform .2s;
+}
+.mc:hover .mc-play-btn{transform:scale(1)}
+.mc-insta-badge{
+  position:absolute;top:8px;right:8px;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  border-radius:6px;padding:3px 7px;
+  font-size:9px;font-weight:600;color:rgba(255,255,255,.7);
+  display:flex;align-items:center;gap:4px;
+}
+.mc-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.mc-owner{font-size:13px;font-weight:700;color:var(--txt);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-profile{font-size:11px;color:var(--blue);font-weight:500}
+.mc-caption{font-size:11px;color:var(--txt2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+.mc-date{font-size:10px;color:var(--txt3)}
+.mc-open{
+  display:flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:600;color:var(--blue);
+  padding:4px 10px;border-radius:6px;border:1px solid rgba(59,130,246,.3);
+  background:rgba(59,130,246,.08);transition:all .15s;
+}
+.mc:hover .mc-open{background:rgba(59,130,246,.2);border-color:var(--blue)}
+
+/* SOURCE ROWS */
+.src-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.src-row:last-child{border-bottom:none}
+.src-rank{font-size:10px;color:var(--txt3);width:16px;text-align:right;flex-shrink:0}
+.src-name{font-size:12px;font-weight:500;color:var(--txt);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-bar-w{width:80px;height:4px;background:var(--border);border-radius:4px;flex-shrink:0}
+.src-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue2),var(--cyan))}
+.src-cnt{font-size:11px;font-weight:600;color:var(--blue);width:24px;text-align:right;flex-shrink:0}
+
+/* TIMELINE */
+.tl-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.tl-txt{font-size:12px;color:var(--txt);line-height:1.4}
+.tl-meta{font-size:10px;color:var(--txt3);margin-top:3px}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#0d1a35 0%,#091020 60%,#0a0f1e 100%);border:1px solid var(--border);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:320px;height:320px;background:radial-gradient(circle,rgba(59,130,246,.12) 0%,transparent 70%);top:-80px;right:-60px;pointer-events:none}
+.hero::after{content:'';position:absolute;width:200px;height:200px;background:radial-gradient(circle,rgba(6,182,212,.07) 0%,transparent 70%);bottom:-60px;left:40px;pointer-events:none}
+.hero-c{position:relative;z-index:1}
+.hero-greet{font-size:12px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
+.hero-title{font-size:26px;font-weight:800;color:var(--txt);line-height:1.2;margin-bottom:6px}
+.hero-sub{font-size:13px;color:var(--txt2);margin-bottom:20px}
+.hero-stats{display:flex;gap:24px;flex-wrap:wrap}
+.hs-val{font-size:22px;font-weight:800;color:var(--txt)}
+.hs-lbl{font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.08em}
+
+/* NEON LINE */
+.nline{height:2px;background:linear-gradient(90deg,var(--blue2),var(--cyan),transparent);border-radius:2px;margin-bottom:24px}
+
+/* PITCH */
+#pitch-wrap{background:#0a1f0e;border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;justify-content:center;overflow:hidden}
+.pitch-svg{width:100%;max-width:520px}
+.form-btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--txt2);transition:all .15s}
+.form-btn:hover,.form-btn.active{background:rgba(59,130,246,.15);border-color:var(--blue);color:var(--blue)}
+
+/* PLANNING */
+.wk-grid{display:grid;grid-template-columns:72px repeat(7,1fr);gap:1px;background:var(--border);border-radius:12px;overflow:hidden}
+.wk-hdr{background:var(--bg2);padding:10px 8px;font-size:11px;font-weight:600;color:var(--txt2);text-align:center;text-transform:uppercase;letter-spacing:.06em}
+.wk-time{background:var(--bg3);padding:8px 10px;font-size:10px;color:var(--txt3)}
+.wk-cell{background:var(--bg3);padding:4px;min-height:52px}
+.wk-ev{background:rgba(59,130,246,.18);border-left:3px solid var(--blue);border-radius:4px;padding:4px 6px;margin:2px 0;font-size:10px;font-weight:500;color:var(--txt);line-height:1.3;cursor:pointer;transition:all .15s}
+.wk-ev:hover{background:rgba(59,130,246,.32)}
+.wk-ev.gr{background:rgba(16,185,129,.15);border-left-color:var(--green)}
+.wk-ev.or{background:rgba(245,158,11,.15);border-left-color:var(--orange)}
+.wk-ev.in{background:rgba(99,102,241,.15);border-left-color:var(--indigo)}
+
+/* NOTES */
+.note{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s}
+.note:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+
+/* MODAL */
+.m-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(5px)}
+.m-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:90%;max-width:480px;transform:translateY(20px);transition:transform .25s;max-height:90vh;overflow-y:auto}
+.m-overlay.open .modal{transform:translateY(0)}
+.m-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.m-title{font-size:16px;font-weight:700;color:var(--txt)}
+.m-close{background:none;border:none;color:var(--txt2);font-size:20px;cursor:pointer;line-height:1}
+.m-close:hover{color:var(--txt)}
+
+/* HEATMAP */
+.hm-grid{display:flex;gap:3px;flex-wrap:wrap}
+.hm-c{width:11px;height:11px;border-radius:2px;background:var(--border);cursor:pointer;transition:transform .1s}
+.hm-c:hover{transform:scale(1.4)}
+.hm-c.l1{background:rgba(59,130,246,.2)}
+.hm-c.l2{background:rgba(59,130,246,.42)}
+.hm-c.l3{background:rgba(59,130,246,.66)}
+.hm-c.l4{background:rgba(59,130,246,.92)}
+
+/* CHART */
+.ch-bar-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end}
+.ch-bar{width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--blue),var(--blue2));transition:opacity .2s;min-height:2px}
+.ch-bar:hover{opacity:.7}
+.ch-lbl{font-size:9px;color:var(--txt3);writing-mode:vertical-lr;transform:rotate(180deg)}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  :root{--sidebar-w:var(--sidebar-c)}
+  #sidebar{width:var(--sidebar-c)}
+  #sidebar .sb-logo-text,#sidebar .nav-lbl,#sidebar .sb-lbl,#sidebar .nav-badge{opacity:0;width:0;overflow:hidden}
+  #main{margin-left:var(--sidebar-c)}
+  #main.expanded{margin-left:var(--sidebar-c)}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(2,1fr)}
+  .hero{padding:20px}.hero-title{font-size:20px}
+}
+@media(max-width:600px){
+  #content{padding:14px}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  #topbar{padding:0 14px}
+  #search-wrap{display:none}
+  .hero-stats{gap:16px}
+  .ga{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <svg class="sb-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="17" fill="#0d1a35" stroke="#1e3a6e" stroke-width="1.2"/>
+      <circle cx="18" cy="18" r="13" fill="#0a1428" stroke="#2a4a8c" stroke-width=".6"/>
+      <text x="18" y="22.5" font-family="Inter,sans-serif" font-size="10.5" font-weight="800" fill="#e2e8f0" text-anchor="middle" letter-spacing="-0.5">ur</text>
+    </svg>
+    <div class="sb-logo-text">
+      <div class="cn">Union<br>Rochefortoise</div>
+      <div class="an">CoachOS</div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-lbl">Principal</div>
+    <div class="nav-item active" onclick="nav('home',this)"><span class="nav-icon">⚡</span><span class="nav-lbl">Tableau de bord</span></div>
+    <div class="nav-item" onclick="nav('media',this)"><span class="nav-icon">🎬</span><span class="nav-lbl">Médiathèque</span><span class="nav-badge">400</span></div>
+    <div class="nav-item" onclick="nav('stats',this)"><span class="nav-icon">📊</span><span class="nav-lbl">Statistiques</span></div>
+    <div class="sb-lbl">Terrain</div>
+    <div class="nav-item" onclick="nav('tactique',this)"><span class="nav-icon">♟️</span><span class="nav-lbl">Tactique</span></div>
+    <div class="nav-item" onclick="nav('planning',this)"><span class="nav-icon">📅</span><span class="nav-lbl">Planning</span></div>
+    <div class="sb-lbl">Staff</div>
+    <div class="nav-item" onclick="nav('notes',this)"><span class="nav-icon">📝</span><span class="nav-lbl">Notes</span></div>
+  </div>
+  <div class="sb-toggle" onclick="toggleSB()">
+    <span id="tog-icon">◀</span>
+    <span class="nav-lbl" style="font-size:12px">Réduire</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="page-title" id="ptitle">Tableau de bord</span>
+    </div>
+    <div class="topbar-right">
+      <div id="search-wrap">
+        <span style="color:var(--txt3);font-size:14px">🔍</span>
+        <input id="search-input" type="text" placeholder="Rechercher un coach, drill…" oninput="onSearch(this.value)">
+      </div>
+      <button class="tb-btn primary" onclick="nav('media',null)">+ Explorer</button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- HOME -->
+    <div id="page-home" class="page active">
+      <div class="hero">
+        <div class="hero-c">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px">
+            <div>
+              <div class="hero-greet">🟢 Saison 2025–2026</div>
+              <div class="hero-title">Bonjour, David 👋</div>
+              <div class="hero-sub">Votre hub football — vidéos, tactique et données réunies.</div>
+              <div class="hero-stats">
+                <div><div class="hs-val">400</div><div class="hs-lbl">Vidéos &amp; posts</div></div>
+                <div><div class="hs-val">376</div><div class="hs-lbl">Contenu football</div></div>
+                <div><div class="hs-val">125</div><div class="hs-lbl">Drills d'entraînement</div></div>
+                <div><div class="hs-val">12</div><div class="hs-lbl">Mois d'activité</div></div>
+              </div>
+            </div>
+            <svg viewBox="0 0 72 72" width="72" height="72" style="opacity:.55;flex-shrink:0" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="36" cy="36" r="34" fill="#0d1a35" stroke="#1e3a6e" stroke-width="1.5"/>
+              <circle cx="36" cy="36" r="28" fill="#0a1428" stroke="#2a4a8c" stroke-width="1"/>
+              <text x="36" y="45" font-family="Inter,sans-serif" font-size="22" font-weight="800" fill="#e2e8f0" text-anchor="middle" letter-spacing="-1">ur</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="nline"></div>
+      <div class="g4" style="margin-bottom:24px">
+        <div class="stat-card"><div class="glw" style="background:#3b82f6"></div><div class="stat-lbl">Vidéos sauvegardées</div><div class="stat-val" style="color:#60a5fa">400</div><div class="stat-dlta">↑ depuis mai 2025</div></div>
+        <div class="stat-card"><div class="glw" style="background:#06b6d4"></div><div class="stat-lbl">Entraînement</div><div class="stat-val" style="color:#22d3ee">125</div><div class="stat-dlta">Drills &amp; exercices</div></div>
+        <div class="stat-card"><div class="glw" style="background:#10b981"></div><div class="stat-lbl">Tactique</div><div class="stat-val" style="color:#34d399">33</div><div class="stat-dlta">Analyses vidéo</div></div>
+        <div class="stat-card"><div class="glw" style="background:#6366f1"></div><div class="stat-lbl">Coaching</div><div class="stat-val" style="color:#a5b4fc">52</div><div class="stat-dlta">Mental &amp; management</div></div>
+      </div>
+      <div class="g2" style="margin-bottom:24px">
+        <div class="card">
+          <div class="card-hdr"><div><div class="card-title">🏆 Top créateurs</div><div class="card-sub">Comptes les plus suivis</div></div><button class="tb-btn" onclick="nav('stats',null)">Voir tout →</button></div>
+          <div id="top-src"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div><div class="card-title">🕐 Dernières vidéos</div><div class="card-sub">Cliquez pour ouvrir sur Instagram</div></div></div>
+          <div id="recent-list"></div>
+        </div>
+      </div>
+      <div class="sec-hdr"><div><div class="sec-title">🗂️ Explorer par catégorie</div></div></div>
+      <div class="g4">
+        <div class="card" style="cursor:pointer;text-align:center" onclick="goCat('Entraînement')"><div style="font-size:32px;margin-bottom:8px">⚽</div><div class="card-title">Entraînement</div><div class="card-sub">Drills &amp; exercices</div><div style="margin-top:10px"><span class="badge bb">125 vidéos</span></div></div>
+        <div class="card" style="cursor:pointer;text-align:center" onclick="goCat('Tactique')"><div style="font-size:32px;margin-bottom:8px">🧩</div><div class="card-title">Tactique &amp; Analyse</div><div class="card-sub">Systèmes de jeu</div><div style="margin-top:10px"><span class="badge bc">33 vidéos</span></div></div>
+        <div class="card" style="cursor:pointer;text-align:center" onclick="goCat('Coaching')"><div style="font-size:32px;margin-bottom:8px">🧠</div><div class="card-title">Coaching &amp; Mental</div><div class="card-sub">Leadership &amp; mindset</div><div style="margin-top:10px"><span class="badge bi">52 vidéos</span></div></div>
+        <div class="card" style="cursor:pointer;text-align:center" onclick="goCat('Football')"><div style="font-size:32px;margin-bottom:8px">🏆</div><div class="card-title">Football &amp; Clubs</div><div class="card-sub">Actualités &amp; matchs</div><div style="margin-top:10px"><span class="badge bo">190 vidéos</span></div></div>
+      </div>
+    </div>
+
+    <!-- MEDIATHÈQUE -->
+    <div id="page-media" class="page">
+      <div class="sec-hdr" style="margin-bottom:14px">
+        <div><div class="sec-title">🎬 Médiathèque</div><div class="sec-sub" id="media-lbl">400 vidéos · cliquez pour ouvrir sur Instagram</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="tb-btn" onclick="sortBy('date')">📅 Date</button>
+          <button class="tb-btn" onclick="sortBy('name')">A→Z</button>
+        </div>
+      </div>
+      <div class="ftabs" id="ftabs">
+        <div class="ftab active" onclick="filt('all',this)">Tout <span id="cnt-all"></span></div>
+        <div class="ftab" onclick="filt('Entraînement',this)">⚽ Entraînement</div>
+        <div class="ftab" onclick="filt('Tactique',this)">🧩 Tactique</div>
+        <div class="ftab" onclick="filt('Coaching',this)">🧠 Coaching</div>
+        <div class="ftab" onclick="filt('Football',this)">🏆 Football</div>
+        <div class="ftab" onclick="filt('fav',this)">⭐ Favoris</div>
+      </div>
+      <div class="ga" id="media-grid"></div>
+      <div style="text-align:center;padding:20px" id="load-more-wrap">
+        <button class="tb-btn" id="load-more-btn" onclick="loadMore()">Charger plus</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div id="page-stats" class="page">
+      <div class="sec-hdr"><div><div class="sec-title">📊 Statistiques</div><div class="sec-sub">Analyse de votre activité — mai 2025 → mai 2026</div></div></div>
+      <div class="g3" style="margin-bottom:24px">
+        <div class="card" style="grid-column:span 2">
+          <div class="card-hdr"><div class="card-title">📈 Activité mensuelle</div></div>
+          <div style="display:flex;align-items:flex-end;gap:5px;height:120px" id="monthly-bars"></div>
+          <div style="display:flex;gap:5px;margin-top:4px" id="monthly-labels"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-title">📂 Catégories</div></div>
+          <div id="cat-breakdown"></div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hdr"><div class="card-title">🏆 Tous les créateurs</div></div>
+          <div id="all-src" style="max-height:380px;overflow-y:auto"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-title">📅 Calendrier d'activité</div><div class="card-sub">Fréquence des sauvegardes</div></div>
+          <div class="hm-grid" id="heatmap" style="margin-top:8px"></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:10px">
+            <span style="font-size:10px;color:var(--txt3)">Moins</span>
+            <div style="display:flex;gap:3px">
+              <div class="hm-c"></div><div class="hm-c l1"></div><div class="hm-c l2"></div><div class="hm-c l3"></div><div class="hm-c l4"></div>
+            </div>
+            <span style="font-size:10px;color:var(--txt3)">Plus</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TACTIQUE -->
+    <div id="page-tactique" class="page">
+      <div class="sec-hdr" style="margin-bottom:14px">
+        <div><div class="sec-title">♟️ Tableau Tactique</div><div class="sec-sub">Visualisez et ajustez vos formations</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="form-btn active" onclick="setForm('4-4-2',this)">4-4-2</button>
+          <button class="form-btn" onclick="setForm('4-3-3',this)">4-3-3</button>
+          <button class="form-btn" onclick="setForm('4-2-3-1',this)">4-2-3-1</button>
+          <button class="form-btn" onclick="setForm('3-5-2',this)">3-5-2</button>
+          <button class="form-btn" onclick="setForm('5-3-2',this)">5-3-2</button>
+        </div>
+      </div>
+      <div class="g2">
+        <div id="pitch-wrap">
+          <svg class="pitch-svg" viewBox="0 0 340 520" id="pitch" xmlns="http://www.w3.org/2000/svg">
+            <rect width="340" height="520" fill="#0d2211" rx="8"/>
+            <rect x="0" y="0" width="340" height="52" fill="#0e2413" opacity=".5"/>
+            <rect x="0" y="104" width="340" height="52" fill="#0e2413" opacity=".5"/>
+            <rect x="0" y="208" width="340" height="52" fill="#0e2413" opacity=".5"/>
+            <rect x="0" y="312" width="340" height="52" fill="#0e2413" opacity=".5"/>
+            <rect x="0" y="416" width="340" height="52" fill="#0e2413" opacity=".5"/>
+            <rect x="10" y="10" width="320" height="500" fill="none" stroke="#2a7a3a" stroke-width="2" rx="2"/>
+            <line x1="10" y1="260" x2="330" y2="260" stroke="#2a7a3a" stroke-width="1.5"/>
+            <circle cx="170" cy="260" r="50" fill="none" stroke="#2a7a3a" stroke-width="1.5"/>
+            <circle cx="170" cy="260" r="3" fill="#2a7a3a"/>
+            <rect x="75" y="10" width="190" height="90" fill="none" stroke="#2a7a3a" stroke-width="1.5"/>
+            <rect x="75" y="420" width="190" height="90" fill="none" stroke="#2a7a3a" stroke-width="1.5"/>
+            <rect x="120" y="10" width="100" height="35" fill="none" stroke="#2a7a3a" stroke-width="1.5"/>
+            <rect x="120" y="475" width="100" height="35" fill="none" stroke="#2a7a3a" stroke-width="1.5"/>
+            <rect x="140" y="4" width="60" height="7" fill="none" stroke="#2a7a3a" stroke-width="1.5"/>
+            <rect x="140" y="509" width="60" height="7" fill="none" stroke="#2a7a3a" stroke-width="1.5"/>
+            <circle cx="170" cy="75" r="3" fill="#2a7a3a"/>
+            <circle cx="170" cy="445" r="3" fill="#2a7a3a"/>
+            <g id="pl-layer"></g>
+          </svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card">
+            <div class="card-hdr"><div class="card-title" id="form-lbl">Formation : 4-4-2</div></div>
+            <div id="pl-list" style="display:flex;flex-direction:column;gap:7px"></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-title">📋 Notes tactiques</div></div>
+            <textarea id="tac-notes" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:12px;padding:12px;resize:vertical;min-height:110px;outline:none;font-family:inherit;line-height:1.6" placeholder="Vos observations, principes de jeu, consignes clés…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANNING -->
+    <div id="page-planning" class="page">
+      <div class="sec-hdr" style="margin-bottom:14px">
+        <div><div class="sec-title">📅 Planning de la semaine</div><div class="sec-sub" id="wk-lbl"></div></div>
+        <div style="display:flex;gap:8px">
+          <button class="tb-btn" onclick="chWk(-1)">← Préc.</button>
+          <button class="tb-btn primary" onclick="chWk(0)">Aujourd'hui</button>
+          <button class="tb-btn" onclick="chWk(1)">Suiv. →</button>
+        </div>
+      </div>
+      <div class="wk-grid" id="wk-grid"></div>
+      <div style="margin-top:16px;display:flex;gap:14px;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--blue);opacity:.8"></span> Séance technique</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);opacity:.8"></span> Match</span>
+        <span style="display:flex;align-items:center;gap=6px;font-size:11px;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--orange);opacity:.8"></span> Récupération</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--indigo);opacity:.8"></span> Analyse vidéo</span>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div id="page-notes" class="page">
+      <div class="sec-hdr" style="margin-bottom:14px">
+        <div><div class="sec-title">📝 Notes du staff</div><div class="sec-sub">Observations, analyses, consignes</div></div>
+        <button class="tb-btn primary" onclick="openNewNote()">+ Nouvelle note</button>
+      </div>
+      <div class="g3" id="notes-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="m-overlay" id="m-overlay" onclick="closeMOuter(event)">
+  <div class="modal">
+    <div class="m-hdr">
+      <span class="m-title" id="m-title">Détail</span>
+      <button class="m-close" onclick="closeM()">✕</button>
+    </div>
+    <div id="m-body"></div>
+  </div>
+</div>
+
+<script>
+const POSTS=[{"date":"2026-05-21","url":"https://www.instagram.com/reel/DYlHdI5NljY/","o":"Alcindo Oliveira","p":"alcindo_oliveira_","c":"•MD/DJ -4: -Futebol explosivo (tensão).","cat":"Football","fb":true},
+{"date":"2026-05-21","url":"https://www.instagram.com/reel/DYmJmLLIU74/","o":"Taner Doğukan OSMANOĞLU","p":"tactic07coach","c":"@astonvilla 🎯 @unaiemery_ 👁️🔥👁️ *Everyone knows their role because everything is plan","cat":"Tactique","fb":true},
+{"date":"2026-05-20","url":"https://www.instagram.com/reel/DYfGvNZMYEs/","o":"Ilya Burdov","p":"burdovilya","c":"FINISHING DRILL #3  Key moments: - control the space behind you  - one touch. Receive","cat":"Entraînement","fb":true},
+{"date":"2026-05-20","url":"https://www.instagram.com/reel/DYZb658Mzda/","o":"Mohamed Abo Seada","p":"m.aboseada","c":"جملة تكتيكية من العمق تعتمد على التحرك المستمر، خلق التفوق العددي، واستغلال المساحات ","cat":"Football","fb":true},
+{"date":"2026-05-20","url":"https://www.instagram.com/reel/DYjtZfvsWaD/","o":"Estelle & Romain","p":"lesexplorateurs.dumonde","c":"Bienvenue à 🏰🌿🇱🇺  📍 Vianden, Luxembourg  Cette ville médiévale luxembourgeoise à 20 m","cat":"Football","fb":false},
+{"date":"2026-05-20","url":"https://www.instagram.com/reel/DYjut7jyqw1/","o":"Maxim Gaydovskiy","p":"m777ax","c":"8v2 rondo that becomes harder every 5 passes ⚽️🔥 at Avondale FC @avondalefc84   Desig","cat":"Entraînement","fb":true},
+{"date":"2026-05-20","url":"https://www.instagram.com/reel/DYkax9Ttyvr/","o":"Instant Foot","p":"instant_foot","c":"Ça c’est pas sympa Barcola ! 😭😭😭😭","cat":"Football","fb":true},
+{"date":"2026-05-20","url":"https://www.instagram.com/reel/DYkJy3FsNbe/","o":"L’information IA","p":"information.ia","c":"Google vient de faire un gros move : ils ont transformé tout le workflow de développe","cat":"Tactique","fb":true},
+{"date":"2026-05-20","url":"https://www.instagram.com/p/DYeud9ojF6X/","o":"Ayoub Faouzi | IA & Automatisation","p":"disizyyov7","c":"Tout ce que dit Claude n’est pas forcément vrai. Tu dois toujours vérifier les source","cat":"Football","fb":false},
+{"date":"2026-05-20","url":"https://www.instagram.com/reel/DTa9uJPDVU-/","o":"Ginga Conseils | Formateur & créate","p":"joe_ginga","c":"Commente “BONNE ANNÉE”. Je te partage un modèle IA gratuit, précis et fiable, parfait","cat":"Football","fb":false},
+{"date":"2026-05-19","url":"https://www.instagram.com/reel/DYe-uTrotj5/","o":"umut tonguç","p":"coach_umut.tonguc","c":"⚽️ 4v2 Rondo’dan 2v2 Geçiş Oyunu  Modern futbolda oyun zekâsını geliştiren en önemli ","cat":"Entraînement","fb":true},
+{"date":"2026-05-19","url":"https://www.instagram.com/reel/DYhRJPeDx6H/","o":"Henri · ExplorIA","p":"henriexploria","c":"Commente “Voix” et je t’envoie le guide complet d’installation.  Arrête de payer pour","cat":"Football","fb":false},
+{"date":"2026-05-19","url":"https://www.instagram.com/reel/DTOXRD-iOGk/","o":"comeairdelimoges","p":"comeairdelimoges","c":"L’ingratitude naît là où l’amour est certain car, on n’est ingrat qu’avec ceux dont o","cat":"Football","fb":false},
+{"date":"2026-05-18","url":"https://www.instagram.com/p/DYfVH7mjE4u/","o":"L’information IA","p":"information.ia","c":"L’IA AVANCE PLUS VITE QUE JAMAIS. VOICI LES PLUS GROSSES NEWS QUI ONT TOUT CHANGÉ CET","cat":"Tactique","fb":true},
+{"date":"2026-05-17","url":"https://www.instagram.com/reel/DYcutfvDyOW/","o":"Henri · ExplorIA","p":"henriexploria","c":"Commente 'CODE' et je t'envoie le guide de configuration.  GitHub vient de tuer le vi","cat":"Football","fb":false},
+{"date":"2026-05-17","url":"https://www.instagram.com/reel/DYb06XSTjvV/","o":"coachesvoice","p":"coachesvoice","c":"Xabi Alonso has been confirmed as the next manager of Chelsea 🔵  In his Coaches’ Voic","cat":"Coaching","fb":true},
+{"date":"2026-05-17","url":"https://www.instagram.com/p/DYK21NwCBKN/","o":"Phase of Play","p":"phase_of_play","c":"“VERTICAL PLAY IN 4-2-3-1”: Built around the ideas of Hansi Flick and his adaptation ","cat":"Tactique","fb":true},
+{"date":"2026-05-17","url":"https://www.instagram.com/reel/DYabSXHIg-5/","o":"Taner Doğukan OSMANOĞLU","p":"tactic07coach","c":"@fcporto 🎯 @francescofarioli #porto #portugal🇵🇹 #trending #instamood #setpieces #tren","cat":"Tactique","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYSR5rVRLUM/","o":"BeTheDifference121Training","p":"btd121training","c":"| SPEED PASSING PRACTICE |   Short clip of passing practice with main emphasis on spe","cat":"Entraînement","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DXLa4jqgbAH/","o":"Maxim Gaydovskiy","p":"m777ax","c":"3v2 ➡️ 4v3 FAST ATTACK ⚡ @avondalefc84 ⚪️🔵  Designed by Jonatan Germano @shonygermano","cat":"Football","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYTFDdbs6Pk/","o":"J9 Academia de futebol 🇧🇷🇯🇵🇹🇭🇨🇿🇭🇰🇧🇬","p":"j9academiadefutebol","c":"✅🎯Passe cruzado de média dificuldade  visão periférica 🚀🚀⚽️⚽️","cat":"Football","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYXXwc8qdJx/","o":"LenteTattica","p":"lentetattica","c":"Moduli e sviluppo in fase offensiva | 4-2-3-1 edition  Il 4-2-3-1 è uno dei sistemi p","cat":"Tactique","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYPTQxDPlkU/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Tottenham 5v2 Transfer Rondo ⚽  A transfer rondo focused on central protection, contr","cat":"Entraînement","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYRy8aKthcz/","o":"Anders Kristiansen","p":"goalieonadventure","c":"@gloveglu 🧤","cat":"Football","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DX7m0rRMotc/","o":"letscoachit","p":"letscoachit","c":"🎯Allena la transizione!  ⚔️Duelli, attacco dello spazio e azioni veloci! 🔥A tutto cam","cat":"Coaching","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DXUe27UCRiM/","o":"k-scout","p":"k.scout1","c":"🎯 2 erreurs qui te plombent au milieu  Passe en arrière. Contrôle mal orienté. Tu ral","cat":"Tactique","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYDwtxQDJ04/","o":"Vancouver Whitecaps FC","p":"whitecapsfc","c":"Fine tuning for Saturday 🙂‍↕️💥","cat":"Football","fb":false},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYXNj7hIEz1/","o":"Arrêt Flash","p":"arret_flash","c":"Dernier procédé de la séance avec l’équipe première du GFA. Un exercice de possession","cat":"Entraînement","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DYR4G50ByoS/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Liverpool Zoned 3v2 to Mini Goals ⚽  A simple but effective practice developing decis","cat":"Tactique","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/reel/DXZDKXQCChX/","o":"Finalthird","p":"finalthird.pro","c":"This practice is ideal for developing build-up relationships between the goalkeeper, ","cat":"Tactique","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/p/DYaMNbmDAs4/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"Crossing Game ’GK+(5+6)v(6+5)+GK’ - Udinese .  Ebooks for football coaches in the lin","cat":"Entraînement","fb":true},
+{"date":"2026-05-16","url":"https://www.instagram.com/p/DYZqd5liIgd/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Vous pouvez l'ignorer... ou vous pouvez commencer à remarquer une tendance.  La scien","cat":"Coaching","fb":false},
+{"date":"2026-05-15","url":"https://www.instagram.com/p/DX9wEcZDF-Y/","o":"L’information IA","p":"information.ia","c":"La demande pour Claude est complètement folle.  Ce n’est pas juste un énième chatbot.","cat":"Tactique","fb":true},
+{"date":"2026-05-15","url":"https://www.instagram.com/reel/DYR61VbtK5x/","o":"Zeyneb Madi","p":"zeyneb_madi","c":"Commente Claude je t’envoie le guide complet 🔥","cat":"Football","fb":false},
+{"date":"2026-05-15","url":"https://www.instagram.com/reel/DXT8L8XjFi5/","o":"Dryxio US 🇺🇸","p":"dryxio.us","c":"Un autre niveau désormais 😼","cat":"Football","fb":false},
+{"date":"2026-05-13","url":"https://www.instagram.com/p/DYSQzmPCuuv/","o":"Data Marv | IA","p":"datamarv_ia","c":"Like et partage pour le soutien 👌🏽  #site #siteweb #internet #bonplan #siteinternet","cat":"Football","fb":false},
+{"date":"2026-05-13","url":"https://www.instagram.com/reel/DYSt7HORtMS/","o":"Arms","p":"kingarms.ai","c":"C’est trop puissant 🤯 #claude #ia #agentia #website #design","cat":"Football","fb":false},
+{"date":"2026-05-13","url":"https://www.instagram.com/reel/DYPzLdZs6-6/","o":"Vivi – Magnétiseuse intuitive ✨ Soi","p":"vivi.magnetisme","c":"Fixe le point entre tes deux doigts, sans détourner le regard.  Reste détendu, respir","cat":"Football","fb":false},
+{"date":"2026-05-12","url":"https://www.instagram.com/p/DYP0VE3DBoN/","o":"L’information IA","p":"information.ia","c":"Dans 6 mois, les gens qui utilisent Claude dans Office auront gagné des centaines d’h","cat":"Tactique","fb":true},
+{"date":"2026-05-12","url":"https://www.instagram.com/reel/DXzWDznoA6s/","o":"Ugo Tatas | Claude Code & IA","p":"ugotatas.ia","c":"Les 3 fichiers à utiliser pour améliorer la mémoire de Claude code 🫡 #intelligenceart","cat":"Football","fb":false},
+{"date":"2026-05-12","url":"https://www.instagram.com/p/DYOuG9vCLFx/","o":"LiveTag.Pro 🎥⚽️","p":"livetagpro","c":"🎥 Live coding directly on a live VEO feed? Yes — with LiveTag.PRO.  We’ve prepared a ","cat":"Football","fb":false},
+{"date":"2026-05-11","url":"https://www.instagram.com/p/DYAxOm4GLto/","o":"Samy Debbah","p":"samy.debbah","c":"La plupart des gens utilisent Claude Code depuis des mois et restent bloqués à 5% de ","cat":"Football","fb":false},
+{"date":"2026-05-11","url":"https://www.instagram.com/p/DX1uVN7CTbJ/","o":"Alex Snippet | Coding","p":"alex.snippet","c":"Claude Code Secret Commands 🤯👨🏻‍💻  In this post, I share some powerful Claude Code co","cat":"Football","fb":false},
+{"date":"2026-05-11","url":"https://www.instagram.com/reel/DYNJXp1EVVH/","o":"Henri · ExplorIA","p":"henriexploria","c":"Commente 'Code' et je t'envoie le lien directement👇  Le créateur de Claude Code, Bori","cat":"Football","fb":true},
+{"date":"2026-05-09","url":"https://www.instagram.com/reel/DYAmiMDNHsW/","o":"Samy Debbah","p":"samy.debbah","c":"Mets « LOG »en commentaire et je t’envoie les 3 commandes d’installation","cat":"Football","fb":false},
+{"date":"2026-05-09","url":"https://www.instagram.com/reel/DXgeTIPDPc-/","o":"RSC Anderlecht","p":"rscanderlecht","c":"One of one. Happy birthday, Jan. 💜","cat":"Football","fb":false},
+{"date":"2026-05-08","url":"https://www.instagram.com/reel/DXjqNcik29C/","o":"Henri · ExplorIA","p":"henriexploria","c":"Commente 'Carrousel' et je t'envoie le guide complet 👇  Tu savais que tu peux créer t","cat":"Football","fb":false},
+{"date":"2026-05-08","url":"https://www.instagram.com/reel/DYEhg0aCMvt/","o":"LiveTag.Pro 🎥⚽️","p":"livetagpro","c":"🚀 NEW FEATURE in LiveTag.Pro!  Turn video analysis into a tactical board setup in jus","cat":"Tactique","fb":true},
+{"date":"2026-05-06","url":"https://www.instagram.com/reel/DYAGoziosee/","o":"Ugo Tatas | Claude Code & IA","p":"ugotatas.ia","c":"Si je devais supprimer et réinstaller Claude Code, je garderais uniquement ces 3 plug","cat":"Football","fb":false},
+{"date":"2026-05-06","url":"https://www.instagram.com/reel/DYAoiA2x7AS/","o":"Arms","p":"kingarms.ai","c":"10 agents IA Finance dans Claude 🤯 #claude #ia #agentia","cat":"Football","fb":false},
+{"date":"2026-05-06","url":"https://www.instagram.com/p/DX-S8y1lvCx/","o":"Michael ange 👽","p":"michael.angee","c":"Au début, ton corps devient lourd, presque immobile, comme figé. Une pression s’insta","cat":"Tactique","fb":false},
+{"date":"2026-05-06","url":"https://www.instagram.com/reel/DXuoJIMjHwv/","o":"Ninon Ia","p":"ninon.ia_officiel","c":"Toutes les options sont dispo pour le plan gratuit, exception faite d’opus 4.7 #claud","cat":"Football","fb":false},
+{"date":"2026-05-06","url":"https://www.instagram.com/reel/DX8xbs_CMPe/","o":"Raphaël Pautard","p":"raphpautard","c":"J’ai quitté ChatGPT pour Claude… et voilà ce que j’aurais aimé savoir avant. 👀  Aujou","cat":"Football","fb":false},
+{"date":"2026-05-06","url":"https://www.instagram.com/reel/DX-ASqnt-JX/","o":"Training Process | Exclusive Footba","p":"_training_process_","c":"📱 If you want to download clips from Elite coaches we upload many of them on our plat","cat":"Entraînement","fb":true},
+{"date":"2026-05-06","url":"https://www.instagram.com/reel/DX-R4XWPey4/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"👀Excellent drill by @profe_patricio_cornejo. Develops scanning, anticipation and the ","cat":"Entraînement","fb":true},
+{"date":"2026-05-05","url":"https://www.instagram.com/p/DXjWLttCt5s/","o":"Complementary Training","p":"complementary.training","c":"A 4v4 in a 20x20 box and a 4v4 in a 40x40 area are not the same training session. The","cat":"Entraînement","fb":true},
+{"date":"2026-05-04","url":"https://www.instagram.com/reel/DUoGNP7CFm6/","o":"Martin Pavanello","p":"martinpava","c":"💡 Les artefacts (souvent sous-estimés) de Claude : un vrai levier de productivité  On","cat":"Football","fb":false},
+{"date":"2026-05-04","url":"https://www.instagram.com/reel/DX4ewktMnV0/","o":"Dryxio US 🇺🇸","p":"dryxio.us","c":"Ça risque de vous faire gagner des années 👌","cat":"Football","fb":false},
+{"date":"2026-05-04","url":"https://www.instagram.com/reel/DX7D1IOh2HB/","o":"Maxence","p":"capitain.ai","c":"Commente 'LECON' et je t'envoie le guide","cat":"Football","fb":false},
+{"date":"2026-05-04","url":"https://www.instagram.com/p/DX7NiIfCD64/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Lisez jusqu'au bout 💪","cat":"Coaching","fb":false},
+{"date":"2026-05-03","url":"https://www.instagram.com/reel/DStDz2gjBl1/","o":"proverbe.decejour","p":"proverbe.decejour","c":"","cat":"Football","fb":false},
+{"date":"2026-05-03","url":"https://www.instagram.com/reel/DXgz7dZghee/","o":"Paul Slama | Intégrateur IA","p":"slama.ai","c":"Si t'en as marre d'atteindre tes limites sur Claude Code, lis ça.  La plupart des gen","cat":"Football","fb":false},
+{"date":"2026-05-01","url":"https://www.instagram.com/reel/DW35_4didEh/","o":"Jean-Baptiste Roy","p":"jb.roy_","c":"Follow @jb.roy_ si tu es entrepreneur et que tu veux intégrer Claude Code à ton activ","cat":"Football","fb":false},
+{"date":"2026-05-01","url":"https://www.instagram.com/reel/DXmqWylirH6/","o":"Adrien VERILLON","p":"hadrien.ai","c":"Commente “Code” et je t’en envoie 100 de plus 👇  5 codes secrets qui rendent Claude 1","cat":"Football","fb":false},
+{"date":"2026-04-29","url":"https://www.instagram.com/reel/DXg9IFmDYZF/","o":"AIRZED","p":"airzedd","c":"Les plus riches sont ceux qui copient ce qui marche déjà #ia #argent #chatgpt","cat":"Football","fb":false},
+{"date":"2026-04-29","url":"https://www.instagram.com/p/DXmfFFijNB-/","o":"Data Marv | IA","p":"datamarv_ia","c":"Les 12 sites du moment 🔥  #site #siteweb #siteinternet #bonplan #web","cat":"Football","fb":false},
+{"date":"2026-04-28","url":"https://www.instagram.com/reel/DW9Ie_UiWJr/","o":"Sibley VO","p":"sibley.vo","c":"Commente « Puissance » et je t’envoie un guide complet sur l’utilisation des 8 niveau","cat":"Football","fb":false},
+{"date":"2026-04-28","url":"https://www.instagram.com/p/DXUl5N7jF5O/","o":"L’information IA","p":"information.ia","c":"Google a discrètement lancé une puissante suite de dix outils d’IA qui vont bien au-d","cat":"Tactique","fb":true},
+{"date":"2026-04-28","url":"https://www.instagram.com/p/DXrt3TmjOb5/","o":"L’information IA","p":"information.ia","c":"Ces codes ne sont pas officiellement annoncés par Anthropic, mais des utilisateurs le","cat":"Tactique","fb":true},
+{"date":"2026-04-28","url":"https://www.instagram.com/reel/DXrnVZJjYEG/","o":"LEGEND","p":"legendmedia","c":"Un jeune garçon, accusé par sa mère d’avoir torturé son chat pendant des mois, a été ","cat":"Coaching","fb":false},
+{"date":"2026-04-28","url":"https://www.instagram.com/reel/DWi119hiJfP/","o":"Alex 👨‍💻 | LeMondeDuMarketing","p":"lemondedumarketing","c":"Commente « PROMPT » et je te l’envoie directement en DM 👇  Ce prompt force ChatGPT & ","cat":"Football","fb":false},
+{"date":"2026-04-28","url":"https://www.instagram.com/reel/DXFebDfDVAo/","o":"Arms","p":"kingarms.ai","c":"Les 5 armes secrètes à ajouter dans Claude… #claude #ia #agentia","cat":"Football","fb":false},
+{"date":"2026-04-28","url":"https://www.instagram.com/reel/DW10QCymviK/","o":"Henri · ExplorIA","p":"henriexploria","c":"Commente 'prompt' pour recevoir le guide complet dans tes messages privés.","cat":"Football","fb":false},
+{"date":"2026-04-28","url":"https://www.instagram.com/p/DXojYXICE4t/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Votre corps possède un interrupteur anti-anxiété intégré. Il fonctionne en 30 seconde","cat":"Coaching","fb":false},
+{"date":"2026-04-19","url":"https://www.instagram.com/p/DXUhXMODAX6/","o":"Ulyces","p":"ulyces.co","c":"Avec @abacus.ai tu as accès à l’assistant IA ultime, qui peut créer pour toi des site","cat":"Football","fb":false},
+{"date":"2026-04-17","url":"https://www.instagram.com/reel/DXO-R02tUC-/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"Having stabilised individual behaviour under pressure in the 6v6 before, this game in","cat":"Entraînement","fb":true},
+{"date":"2026-04-17","url":"https://www.instagram.com/p/DXOq95eAPjQ/","o":"Royale Union Saint-Gilloise","p":"rusg.brussels","c":"Where the top-of-the-table clash awaits us in two days. ⏳","cat":"Football","fb":false},
+{"date":"2026-04-16","url":"https://www.instagram.com/reel/DWhJuWiMRmn/","o":"Edin Husic Fußballschule","p":"edin.husic.fussballschule","c":"Individuell. Spielnah. Modern. Kreativ.  So trainieren wir im Jugendfußball! Bei uns ","cat":"Football","fb":true},
+{"date":"2026-04-14","url":"https://www.instagram.com/reel/DXHNG7MPOZF/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"LOSC Lille 3v3v3+1 Transfer Box ⚽  A positional game developing movement, support and","cat":"Tactique","fb":true},
+{"date":"2026-04-13","url":"https://www.instagram.com/reel/DXErj7niB64/","o":"Lukáš Galovič | Soccer Growth & Per","p":"best.soccer.coach","c":"⚽️ Kasper Hjulmand – Bayer Leverkusen  🔁 Passing combination in activation   👉 Organi","cat":"Entraînement","fb":true},
+{"date":"2026-04-13","url":"https://www.instagram.com/reel/DXFKnGpiKtv/","o":"Futbol Hasta el Final","p":"futbol_hastaelfinal","c":"Salida de balón desde atrás. #entrenamientosdefutbol #entrenadoresdefutbol #fútbol #e","cat":"Football","fb":true},
+{"date":"2026-04-13","url":"https://www.instagram.com/reel/DWt20AiCkxO/","o":"untappedtv","p":"untapped_tv_","c":"RAM prices right now feel wildly out of touch, and it’s not because your PC suddenly ","cat":"Football","fb":false},
+{"date":"2026-04-11","url":"https://www.instagram.com/p/DW_pjFFkenA/","o":"Billions","p":"billionsofficiel","c":"Anthropic vient de publier une formation officielle et gratuite de 15h pour apprendre","cat":"Tactique","fb":true},
+{"date":"2026-04-11","url":"https://www.instagram.com/reel/DW_ZrRggfmp/","o":"CANAL+ REUNION","p":"canalplus_reunion","c":"@rickytactics a encore tout vu, et nous explique comme Paris a maitrisé Liverpool ⚡️ ","cat":"Tactique","fb":true},
+{"date":"2026-04-11","url":"https://www.instagram.com/reel/DW6tPVLDIat/","o":"Roza | voyages & aventures","p":"roza.explore","c":"Voici 👇 toutes les infos pour y aller   📍 Giethoorn 🇳🇱  🚆 Comment aller à Giethoorn d","cat":"Football","fb":true},
+{"date":"2026-04-08","url":"https://www.instagram.com/p/DW3L6oRABoY/","o":"Royale Union Saint-Gilloise","p":"rusg.brussels","c":"Life at our training ground. ✌️","cat":"Entraînement","fb":true},
+{"date":"2026-04-06","url":"https://www.instagram.com/reel/DWyX_aFk2ZB/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🇩🇪 VfL Bochum (Germany), here’s a 1v1 Duel Setup  📏 Area: Length of the penalty box, ","cat":"Football","fb":false},
+{"date":"2026-04-04","url":"https://www.instagram.com/reel/DWtvuXwk8dg/","o":"Maxime Painchaud","p":"maxime.astuces","c":"J’ai demandé à l’IA de me transformer en footballeur professionnel 😱🚀  J’ai réussi à ","cat":"Football","fb":true},
+{"date":"2026-04-04","url":"https://www.instagram.com/reel/DWrZ1itCuPS/","o":"L'Équipe","p":"lequipe","c":"Les joueurs du RC Lens ont effectué leur dernier entraînement avant le derby à Lille ","cat":"Entraînement","fb":true},
+{"date":"2026-04-01","url":"https://www.instagram.com/reel/DV5u8ZIjQ1U/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"This game deliberately exaggerates depth while limiting width, creating repeated indi","cat":"Entraînement","fb":true},
+{"date":"2026-04-01","url":"https://www.instagram.com/reel/DV0MTUAAizY/","o":"TVMonaco","p":"tvmonaco","c":"😲 Éric Moreau parle 17 langues différentes… y compris le monégasque ! Son astuce ? La","cat":"Football","fb":false},
+{"date":"2026-04-01","url":"https://www.instagram.com/reel/DWlzUWJmj23/","o":"Stade Rennais F.C.","p":"staderennaisfc","c":"Travail face au but pour les Rouge et Noir 🎯","cat":"Football","fb":false},
+{"date":"2026-03-29","url":"https://www.instagram.com/p/DWerwuTjG9T/","o":"Ulyces","p":"ulyces.co","c":"🐬 Au Costa Rica, un homme parvient à sauver seul un dauphin échoué sur la plage, alor","cat":"Football","fb":false},
+{"date":"2026-03-29","url":"https://www.instagram.com/reel/DV3O2AujCOS/","o":"Nuray Barışkan ❤","p":"misss_lezzetler","c":"Aşırı pratik ve çok lezzetli kahvaltılık ürün önerisi mutlaka kaydedin bir kere yapın","cat":"Football","fb":false},
+{"date":"2026-03-27","url":"https://www.instagram.com/reel/DWWpB4UCMnz/","o":"Profit Intelligent","p":"profit_intelligent","c":"La plupart des propriétaires pensent qu’un crédit immobilier signifie automatiquement","cat":"Tactique","fb":true},
+{"date":"2026-03-27","url":"https://www.instagram.com/reel/DWTR2EjDEmy/","o":"Eleven Stars","p":"eleven_stars2016","c":"Es un hombre con gafas de visión nocturna 🥽? ¿Es un cazador camuflado 🪖? Es @8_aleben","cat":"Football","fb":false},
+{"date":"2026-03-27","url":"https://www.instagram.com/reel/DWUEBXODMkU/","o":"SO & MAX + 👶🏻| idées wk • séjours i","p":"baroudeursliegeois","c":"On a découvert une pépite cachée au cœur de la vallée de la Lesse 🤯  📍 Réserve nature","cat":"Football","fb":false},
+{"date":"2026-03-26","url":"https://www.instagram.com/reel/DV3u0XviKqe/","o":"Sara TOPO","p":"saratopo_","c":"Abonne-toi à @saratopo_ pour + de conseils ✨  #ia #creationdecontenu #intelligenceart","cat":"Football","fb":false},
+{"date":"2026-03-26","url":"https://www.instagram.com/reel/DWRM313CIGm/","o":"umut tonguç","p":"coach_umut.tonguc","c":"Hücum Sürekliliği ve Bitiricilik Organizasyonu  Bu antrenman kesitinde, hücum organiz","cat":"Coaching","fb":true},
+{"date":"2026-03-26","url":"https://www.instagram.com/reel/DWUNAPQDMH4/","o":"HUGEL","p":"hugelthug","c":"Bam Bam 🌎","cat":"Football","fb":false},
+{"date":"2026-03-25","url":"https://www.instagram.com/reel/DWJak41DJsG/","o":"LovelyJourney","p":"lovelyyjourneyy","c":"La plupart des propriétaires pensent qu’un crédit immobilier = 30 ans de paiements.  ","cat":"Football","fb":false},
+{"date":"2026-03-24","url":"https://www.instagram.com/reel/DWPQCRFjAG3/","o":"Skerdi Dervishaj","p":"skerdi__dervishaj","c":"⚽✅","cat":"Football","fb":false},
+{"date":"2026-03-22","url":"https://www.instagram.com/p/DWJwGkZjNwO/","o":"Ulyces","p":"ulyces.co","c":"💰 Un barman américain de 22 ans vient de signer un contrat de plus d’un million de do","cat":"Football","fb":false},
+{"date":"2026-03-19","url":"https://www.instagram.com/reel/DV5vq-niIrV/","o":"FC Bayern","p":"fcbayern","c":"One touch only. 🤯  And a great finish from @luisdiaz19_ 🔥","cat":"Football","fb":false},
+{"date":"2026-03-19","url":"https://www.instagram.com/reel/DV4pYlXiH76/","o":"Ju & Ju | Voyage","p":"voya.jeurs","c":"Une mentalité à garder tout au long de notre voyage… 🌎  Parfois le voyage n’est pas f","cat":"Coaching","fb":false},
+{"date":"2026-03-18","url":"https://www.instagram.com/reel/DUeA3F5jVDe/","o":"Stéphanie Gicquel","p":"stephanie_gicquel_officie","c":"🎤 Invitée par Madame Figaro sur la grande scène parisienne de La Gaîté Lyrique, pour ","cat":"Football","fb":false},
+{"date":"2026-03-18","url":"https://www.instagram.com/reel/DWArr2GgDpf/","o":"Nueve Quince Capacitaciones","p":"nueve.quince.capacitacion","c":"2vs1🔥⚔️ Activar no es solo “entrar en calor”… es empezar a pensar el juego desde el p","cat":"Football","fb":true},
+{"date":"2026-03-14","url":"https://www.instagram.com/p/DVyHIFjjVjP/","o":"CL1 - Conneries Ligue1 ⚽️🇫🇷","p":"conneries_ligue1","c":"🇳🇴❤️","cat":"Football","fb":false},
+{"date":"2026-03-13","url":"https://www.instagram.com/p/DV1bDIWDJXh/","o":"lefootsimple","p":"lefootsimple","c":"🚨","cat":"Football","fb":true},
+{"date":"2026-03-13","url":"https://www.instagram.com/reel/DUDDqkvDFWz/","o":"Islom Abdujabborov⚽⚡💫","p":"abdujabborov__7","c":"Koʻtni saqla challenge😂⚡️","cat":"Football","fb":false},
+{"date":"2026-03-12","url":"https://www.instagram.com/p/DVtsvKWiIJ1/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Commenté 2026","cat":"Coaching","fb":false},
+{"date":"2026-03-10","url":"https://www.instagram.com/p/DVrZrnkiLBT/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Lisez jusqu'au bout ✍️🙏","cat":"Coaching","fb":false},
+{"date":"2026-03-09","url":"https://www.instagram.com/reel/DUqskg_Esqb/","o":"Touchtight Coaching","p":"touchtightcoach","c":"🔥 Quick Transfer Rondo (4 v 2) | 39-P6!   #football #soccer #footballtraining #soccer","cat":"Entraînement","fb":true},
+{"date":"2026-03-09","url":"https://www.instagram.com/reel/DVrbbTOFWmR/","o":"L'Équipe","p":"lequipe","c":"Carrière, Da Rocha, Gillet : on a demandé à d'anciens joueurs nantais de nous parler ","cat":"Coaching","fb":true},
+{"date":"2026-03-09","url":"https://www.instagram.com/reel/DVqUHOfiGTE/","o":"Les Pépites de France","p":"lespepitesdefrance","c":"Le village français où le temps s’est arrêté en 1944 🕰️  À Oradour-sur-Glane, les rui","cat":"Football","fb":false},
+{"date":"2026-03-09","url":"https://www.instagram.com/reel/DVjaoXcjWjk/","o":"Merveilles du Nord","p":"merveillesdunord","c":"C’est une ville super charmante avec des canaux et une magnifique plage située à 15 m","cat":"Football","fb":false},
+{"date":"2026-03-06","url":"https://www.instagram.com/reel/DVV1QJfldWh/","o":"BBC Sport Scotland","p":"bbcsportscot","c":"Ibrox is BOUNCING 🔥  Follow the Old Firm live on the BBC Sport website and BBC Sports","cat":"Football","fb":true},
+{"date":"2026-03-05","url":"https://www.instagram.com/reel/DVd4BDOjMD3/","o":"\"FARDU\" FUTBOL KLUBI.","p":"fcfardu","c":"","cat":"Football","fb":true},
+{"date":"2026-03-05","url":"https://www.instagram.com/reel/DVZFHEBiYAn/","o":"442","p":"442oi","c":"Tactical build up traning #442zi  #football  #soccer  #futbol  #repost","cat":"Tactique","fb":true},
+{"date":"2026-03-04","url":"https://www.instagram.com/reel/DVZ1a4LgK3W/","o":"Nueve Quince Capacitaciones","p":"nueve.quince.capacitacion","c":"Domina el 1vs1 🔥  Quien domina los duelos domina el juego! ⚔️⚽🏆  Ejercicio orientado ","cat":"Football","fb":true},
+{"date":"2026-03-04","url":"https://www.instagram.com/reel/DVY_TBKjB8j/","o":"Tactical Touch","p":"tacticaltouchh","c":"• Liverpool - 7v3 Rondo   × The player who loses the ball moves to the center.   #liv","cat":"Entraînement","fb":true},
+{"date":"2026-03-04","url":"https://www.instagram.com/reel/DVYbU2xDLdt/","o":"ADFootballTrainingVideos","p":"adfootballtrainingvideos","c":"Third Man Run Drill  👉 The full video is on YouTube  #football #soccer #training #ree","cat":"Entraînement","fb":true},
+{"date":"2026-03-02","url":"https://www.instagram.com/p/DU3n_08EgvH/","o":"Paradox Publicity","p":"paradoxpublicity","c":"On appartient à une génération qui a appris à s’adapter avant même que le mot devienn","cat":"Football","fb":true},
+{"date":"2026-03-01","url":"https://www.instagram.com/p/DVWMqhbjPNQ/","o":"Ulyces","p":"ulyces.co","c":"Commente « tester » et on t’envoie le lien en DM 😻  🇫🇷 @cattus_ai est l’assistant IA ","cat":"Football","fb":false},
+{"date":"2026-02-27","url":"https://www.instagram.com/reel/DQXdCuIlM6t/","o":"Footballrush","p":"footballrush241","c":"Bournemouth Played Chess While Newcastle Played Football ♟️","cat":"Football","fb":true},
+{"date":"2026-02-26","url":"https://www.instagram.com/reel/DVOLzJNDecU/","o":"Loi de l'attraction ● Dev Perso ● P","p":"penseurcreateur","c":"La formule a été retrouvée dans ses carnets personnels, mais elle n’a jamais été inté","cat":"Football","fb":false},
+{"date":"2026-02-25","url":"https://www.instagram.com/reel/DVLuPdBCHQD/","o":"Lukáš Galovič | Soccer Growth & Per","p":"best.soccer.coach","c":"Fred Grim at Ajax Amsterdam ⚽️   Attack vs Defense | 10v7 + GK   More exclusive conte","cat":"Coaching","fb":true},
+{"date":"2026-02-24","url":"https://www.instagram.com/reel/DVIlb57DT47/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"The Newcastle United U-18 session ends with a small-sided game that gives the players","cat":"Entraînement","fb":true},
+{"date":"2026-02-22","url":"https://www.instagram.com/reel/DUDnii0jjQd/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Chelsea 6v3 Transfer Game 🔵⚽️  A possession and transition game focused on counterpre","cat":"Entraînement","fb":true},
+{"date":"2026-02-21","url":"https://www.instagram.com/reel/DUlF4yZjpcN/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"FC Barcelona 3v3v3+1 Rondo to Mini Goals 🔵🔴⚽️  A three-team rondo linking collective ","cat":"Entraînement","fb":true},
+{"date":"2026-02-19","url":"https://www.instagram.com/reel/DU5sJUqjiRx/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"De Zerbi-Inspired Technical Passing ⚽️  A technical activation focused on receiving o","cat":"Entraînement","fb":true},
+{"date":"2026-02-19","url":"https://www.instagram.com/reel/DRCwh61CEaZ/","o":"footballfitnessdrills","p":"footballfitnessdrills","c":"📩 Coaches, comment 50, receive 50+ football fitness drills, a 6wk plan and a mini-gui","cat":"Entraînement","fb":true},
+{"date":"2026-02-19","url":"https://www.instagram.com/reel/DUYN1rckVwz/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Bayern Munich 5v5+3 Breakout Game 🔴⚪️⚽️  A positional game linking structured possess","cat":"Entraînement","fb":true},
+{"date":"2026-02-19","url":"https://www.instagram.com/reel/DUlYLzkDdVJ/","o":"Vaqif Mirzəyev","p":"vaqif.coach","c":"Çeviklik + Bitiricilik 💥 #uşaqfutbolu #futbolməşqi #footballkids #soccertraining #15y","cat":"Entraînement","fb":true},
+{"date":"2026-02-19","url":"https://www.instagram.com/reel/DU8Q8KtDmsX/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Bournemouth 8v8+4 Large Possession Game 🔴⚫️⚽️  A large-area possession game built aro","cat":"Entraînement","fb":true},
+{"date":"2026-02-12","url":"https://www.instagram.com/reel/DR-EY2SiLGw/","o":"tasuneminute","p":"tasuneminute","c":"T’as une minute là ? Pour parler du fait d’être père ?","cat":"Football","fb":false},
+{"date":"2026-02-12","url":"https://www.instagram.com/reel/DUghx1qjd-f/","o":"Soldat de la recherche 🇫🇷 ☨","p":"soldatdelarecherche","c":"🇫🇷 Une arrestation qui changea la France d’après guerre, un 21 juin 1943.  Après-guer","cat":"Football","fb":false},
+{"date":"2026-02-12","url":"https://www.instagram.com/p/DUpmZBsDOc8/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"Arne Slot attack vs defence football drills.  📚ebooks for football coaches in the lin","cat":"Entraînement","fb":true},
+{"date":"2026-02-11","url":"https://www.instagram.com/reel/DSrRGI7DCGu/","o":"Maccabi hod hasharon fc","p":"macabihodhasharon","c":"@macabihodhasharon ✅⚽️💙","cat":"Football","fb":false},
+{"date":"2026-02-11","url":"https://www.instagram.com/reel/DUgl2akkv_9/","o":"442","p":"442oi","c":"2v1 finishing drills #football #soccer #442zi","cat":"Entraînement","fb":true},
+{"date":"2026-02-11","url":"https://www.instagram.com/reel/DUWasIyDfAv/","o":"Junes Barny","p":"jb.academyfootball","c":"Play through the 4th man to release the 3rd.   Find the free player.   PassingPattern","cat":"Entraînement","fb":true},
+{"date":"2026-02-11","url":"https://www.instagram.com/reel/DTdSamYDvzr/","o":"T1TAN","p":"t1tan","c":"𝙀𝙉 One touch. No mistakes. 😤⚽⁠ ⁠ 𝘿𝙀 Ein Kontakt. Keine Fehler. 😤⚽","cat":"Football","fb":false},
+{"date":"2026-02-11","url":"https://www.instagram.com/reel/DUlObIijNWQ/","o":"TECHNIEKTRAINING VAN SNICK ®","p":"techniektraining.van.snic","c":"⚽️ 2v2 Drill ↪️ First touch ➡️ Coach Brent Van Snick 🇧🇪 🔰 Save & like 👍 • #soccerdril","cat":"Entraînement","fb":true},
+{"date":"2026-02-10","url":"https://www.instagram.com/p/DUk6XxgCCAy/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Les Grecs savaient que l'esprit s'emprisonne lui-même. Ils appelaient cela l'ananképh","cat":"Coaching","fb":false},
+{"date":"2026-02-10","url":"https://www.instagram.com/reel/DUSYKEWDCVH/","o":"🇵🇸 Chai.B","p":"eveildu.coeur","c":"Pleurer, ce n’est pas s’effondrer.  C’est avoir le courage de laisser sortir ce que l","cat":"Football","fb":false},
+{"date":"2026-02-07","url":"https://www.instagram.com/reel/DOoqdamjCTI/","o":"Audrey A","p":"aaudrey64","c":"#reflexion","cat":"Football","fb":false},
+{"date":"2026-02-06","url":"https://www.instagram.com/reel/DUTOBJrEXQY/","o":"ALIGNMENT","p":"alignment_mastermind","c":"👉 Tout homme, un jour, perd une bataille.  Il se bat avec ce qu’il a, donne tout… et ","cat":"Football","fb":false},
+{"date":"2026-02-06","url":"https://www.instagram.com/reel/DUVaj6EjNK_/","o":"Fusion_rugby","p":"fusion.rugby","c":"#rugby #reels #exploit #motivation #sport extrait provenant du compte de @nogodi_","cat":"Coaching","fb":true},
+{"date":"2026-02-06","url":"https://www.instagram.com/reel/DQHfcKaiKue/","o":"tasuneminute","p":"tasuneminute","c":"T’as une minute là ? Pour parler des grands-parents ?   📖 Livre disponible sur Amazon","cat":"Football","fb":false},
+{"date":"2026-02-06","url":"https://www.instagram.com/reel/DShQyUFCHv1/","o":"SOHAIB BOUZIANE | COACH","p":"sohaib_bouziane_coach","c":"Change of direction exercises according to playing position 👌✅","cat":"Entraînement","fb":true},
+{"date":"2026-02-06","url":"https://www.instagram.com/reel/CpTUTwqojq-/","o":"Vanessa Rodrigues 🕯️Madame Fantômes","p":"madamefantomes","c":"La vie est éphémère 🌹 Discours Extrait du film Jack (1996)  #deuil #défunt #funéraire","cat":"Football","fb":false},
+{"date":"2026-02-05","url":"https://www.instagram.com/p/DUYsxP3CCbp/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Ce que Jésus a enseigné n'a jamais été confortable.  Il n'a jamais été question de re","cat":"Coaching","fb":false},
+{"date":"2026-02-04","url":"https://www.instagram.com/reel/DUO4K1CEet0/","o":"Sergio Salaberry","p":"sergiosalaberrydtfutbol","c":"Ejercicio clave para mejorar la salida de balón y la movilidad ofensiva En este traba","cat":"Football","fb":true},
+{"date":"2026-02-03","url":"https://www.instagram.com/reel/DUMwR5_AEOf/","o":"Sergio Salaberry","p":"sergiosalaberrydtfutbol","c":"Entrenar con sentido, no por entrenar ⚽ Este ejercicio apunta a mejorar: ▪️ la circul","cat":"Football","fb":true},
+{"date":"2026-02-03","url":"https://www.instagram.com/reel/DUT5EB8j6tH/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🟢⚪️ Celtic Training Earlier this morning Combination Setup   ➡️Get more training plan","cat":"Entraînement","fb":true},
+{"date":"2026-02-03","url":"https://www.instagram.com/p/DUTd8gciIiU/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Lisez jusqu'au bout ✍️","cat":"Coaching","fb":false},
+{"date":"2026-02-03","url":"https://www.instagram.com/reel/DUS7dkgCB8H/","o":"Lukáš Galovič | Soccer Growth & Per","p":"best.soccer.coach","c":"Michel Ribeiro at KRC Genk  Technical passing & footwork, finding the attacking midfi","cat":"Entraînement","fb":true},
+{"date":"2026-02-03","url":"https://www.instagram.com/reel/DS-rG38EmSc/","o":"Mastery","p":"mastery.io","c":"Who you become starts right now","cat":"Football","fb":false},
+{"date":"2026-02-02","url":"https://www.instagram.com/reel/DUQdkcvj1gP/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"Hans de Jong shares a new training exercise from Kozakken Boys.  Passing sequences le","cat":"Entraînement","fb":true},
+{"date":"2026-01-30","url":"https://www.instagram.com/reel/DUDPa6oiHWz/","o":"FutbolArena","p":"futbolarena","c":"📹 Fenerbahçe antrenmanında Domenico Tedesco’nun talimatları: “Top bizdeyken oyunu açm","cat":"Football","fb":true},
+{"date":"2026-01-30","url":"https://www.instagram.com/reel/DRr4s_ODPDb/","o":"Benjamin Beautour","p":"hommesanschaine","c":"Quelques conseils simples pour la semaine à venir...  Apprends à connaître la chimie ","cat":"Football","fb":false},
+{"date":"2026-01-30","url":"https://www.instagram.com/reel/DUD1UTljLDR/","o":"Yurii Kaliuzhnyi","p":"klznyi","c":"CORNER KICK - MORE DETAILS 👉🏼  Team: Dukla Praha Manager: David Holoubek  Created usi","cat":"Entraînement","fb":false},
+{"date":"2026-01-25","url":"https://www.instagram.com/p/DT8nRCCDFvI/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"Xabi Alonso Passing Drill.  📚ebooks for football coaches in the link in my profile.  ","cat":"Entraînement","fb":true},
+{"date":"2026-01-23","url":"https://www.instagram.com/reel/DT2eQiaj39J/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️'7v6 + 2 GK's' (defensive shifting) - Lechia Gdańsk - Tomasz Kaczmarek & Łukasz Jan","cat":"Coaching","fb":true},
+{"date":"2026-01-21","url":"https://www.instagram.com/reel/DTxl9ceERfl/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Club Brugge Technical Passing Pattern 🔵⚫️⚽️  A paired passing pattern focused on over","cat":"Entraînement","fb":true},
+{"date":"2026-01-20","url":"https://www.instagram.com/reel/DR_0FE6Ds5E/","o":"آرین کرد ⚽ آموزش مربیگری فوتبال","p":"arian_kurd_t","c":"#فوتبال #soccer #football #مربیگری_فوتبال  #آنالیز_فوتبال #آکادمی_فوتبال  #بدنسازی_فو","cat":"Football","fb":true},
+{"date":"2026-01-20","url":"https://www.instagram.com/reel/DTuQ8yCjLzP/","o":"RC Lens","p":"zone__racing","c":"𝐕𝐎𝐔𝐒 𝐄𝐓𝐄𝐒 𝐃𝐀𝐍𝐒 𝐋𝐄 𝐕𝐄𝐒𝐓𝐈𝐀𝐈𝐑𝐄 𝐋𝐄𝐍𝐒𝐎𝐈𝐒. 𝐄𝐂𝐎𝐔𝐓𝐄𝐙 𝐏𝐈𝐄𝐑𝐑𝐄 𝐒𝐀𝐆𝐄 ...   Le discours féroce du ","cat":"Coaching","fb":true},
+{"date":"2026-01-19","url":"https://www.instagram.com/reel/DTiYsyhjBHu/","o":"Racing Club de Lens","p":"rclens","c":"Jeu 𝑟𝑒́𝑑𝑢𝑖𝑡 et intensité 𝑎𝑚𝑝𝑙𝑖𝑓𝑖𝑒́𝑒 🔛  #FiersDEtreLensois","cat":"Football","fb":false},
+{"date":"2026-01-19","url":"https://www.instagram.com/reel/DS-wcVRDM7H/","o":"Muhammed Fatih Ağbaba","p":"mfatih.trainer","c":"Third Man Run Combination & Finishing Drill.","cat":"Entraînement","fb":true},
+{"date":"2026-01-19","url":"https://www.instagram.com/reel/DTia_pmjJ2o/","o":"Lukas Gerbracht | Fußballtaktik & -","p":"pendelnde_viererkette","c":"Rondo-Spielform: 6 vs. 6 + 3","cat":"Entraînement","fb":true},
+{"date":"2026-01-19","url":"https://www.instagram.com/reel/DTscWsQjsnb/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Brighton Figure-of-8 Passing Pattern 🔵⚽️  A technical passing pattern focused on rece","cat":"Entraînement","fb":true},
+{"date":"2026-01-19","url":"https://www.instagram.com/reel/DTm0kAAj583/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔥 Manchester United vs Manchester City TODAY 🔥  It’s Derby Day in the Manchester Derb","cat":"Football","fb":true},
+{"date":"2026-01-18","url":"https://www.instagram.com/p/DTpzZmQASE4/","o":"Union Rochefortoise","p":"union_rochefortoise","c":"Sur le terrain, avec notre kiné, dans les vestiaires. La préparation commence. 😤⚔️","cat":"Football","fb":false},
+{"date":"2026-01-17","url":"https://www.instagram.com/reel/DTiV3KUDc2A/","o":"FC Basel 1893","p":"fcbasel1893","c":"𝑪𝑳𝑶𝑺𝑬 𝑪𝑨𝑳𝑳 … 🫠🫠🫠  #FCBasel1893 #AlliZämme #imRotblaueRusch","cat":"Football","fb":false},
+{"date":"2026-01-16","url":"https://www.instagram.com/p/DTlHpyKiHBg/","o":"Dorian Martinez","p":"coach_pnp","c":"On entend souvent dire à un athlète : « Arrête de trop penser. »  Mais débrancher le ","cat":"Coaching","fb":true},
+{"date":"2026-01-15","url":"https://www.instagram.com/p/DTQRO8sDc6x/","o":"REUSSIR","p":"reussirmedia","c":"À 16 ans, ce n’était pas du talent en plus. Ni de la motivation. Ni de la chance.  C’","cat":"Coaching","fb":true},
+{"date":"2026-01-15","url":"https://www.instagram.com/reel/DTiDjvoD-mc/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️Corner Kick Training - Lechia Gdańsk - Tomasz Kaczmarek & Łukasz Jankowski🇵🇱  🖌️Tel","cat":"Entraînement","fb":true},
+{"date":"2026-01-10","url":"https://www.instagram.com/p/DTQgGjOiPTh/","o":"Motivation | Business | Succès","p":"millionairesmorales","c":"Lisez jusqu'au bout ✍️🙏","cat":"Coaching","fb":false},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DSw07yhjefe/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Benfica 4v4+3 Transfer Possession 🔴⚽️  A transfer-based possession game focused on co","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DTIgqKADGa6/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"This exercise from Costa Rica’s Women’s National Team progresses the session into 3v1","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DTN5F-ikffc/","o":"Arsenal","p":"arsenal","c":"The graft never stops. ⁣ ⁣ Inside Training: Liverpool (H) watch now at Arsenal.com an","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DRtvoDiDbXb/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"This exercise enables players to work on isolated defensive situations. The defender ","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DSmm1yogP3-/","o":"442","p":"442oi","c":"Phases of a game. Moments of offensive and defensive organization and transition. A t","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DTK-B9gEjp7/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"RB Leipzig Positional 3v2 🔴⚪️⚽️  A half-pitch attacking exercise focused on wide over","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DS3cIDgETHf/","o":"Sergio Salaberry","p":"sergiosalaberrydtfutbol","c":"Ejercicio técnico de pase y conducción 👇 El foco está en el primer control y el perfi","cat":"Football","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DS8Be74gP4T/","o":"442","p":"442oi","c":"Bayern Munich passing activation   #football #soccer #futbol #footballtraining  #foot","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DTJbFduka_S/","o":"Sergio Salaberry","p":"sergiosalaberrydtfutbol","c":"Ejercicio de activación con pases en diagonal y simulación de pase en profundidad ⚽ D","cat":"Football","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DTNMIYSj4K_/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️📋Training Session (MD-4) - RCD Mallorca - Jagoba Arrasate🇪🇸: https://www.patreon.co","cat":"Entraînement","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DTKjtwGgLSd/","o":"Bahçelievler Spor Kulübü","p":"karsiyaka_bahcelievler_sp","c":"Aynı çalışma içinde birden fazla karar anı barındıran antrenmanlar, oyuncunun sadece ","cat":"Football","fb":false},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DSQ4fxbEa3Y/","o":"Sergio Salaberry","p":"sergiosalaberrydtfutbol","c":"⚽ El gol no empieza en el remate  Empieza mucho antes: ▪️ en el pase ▪️ en el movimie","cat":"Football","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DSS8-rgjd10/","o":"Кирилл Жданов | Футбольный тренер С","p":"zhd_coach","c":"Испанский сборник с 500 упражнениями уже в тг канале, ссылка в шапке профиля 👉 @zhd_c","cat":"Coaching","fb":true},
+{"date":"2026-01-08","url":"https://www.instagram.com/reel/DSIekpTCPVM/","o":"coachbenjones","p":"coachbenjones","c":"#soccer #football #ronaldo #messi #fyp #goals #futebol #footballtraining #reel #salah","cat":"Entraînement","fb":true},
+{"date":"2026-01-07","url":"https://www.instagram.com/reel/DTN8EWuAk5U/","o":"THOMAS","p":"coach.tms","c":"🚨 La gestion de l’intervalle est primordiale pour concéder moins d’occasions.  Quand ","cat":"Coaching","fb":true},
+{"date":"2026-01-06","url":"https://www.instagram.com/reel/DTLOcC6DCAO/","o":"KAA Gent","p":"kaagent","c":"𝘽𝙖𝙗𝙞𝙚𝙨 𝙫𝙨. 𝙊𝙡𝙙 𝙂𝙪𝙮𝙨  Who will win? Place your bets 🎰","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/p/CQZbr1KHnBW/","o":"TARAVEL Jérémy","p":"taravel_jeremy","c":"👊","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSu7NScCuG3/","o":"Apex.Analysis1","p":"apex.analysis1","c":"Real Oviedo’s kick off routine vs Real Madrid, requiring an important intervention fr","cat":"Tactique","fb":true},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DShzEvFCLUG/","o":"Ka em Portugal 🇵🇹","p":"kaemportugall","c":"5 brincadeiras de Natal 🎄   Já compartilha e salva para não perder ✅  #brincadeira #ɴ","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSvOMmdke6c/","o":"Ivanna Matamoros","p":"ivannamatamorosr","c":"Mi juego favorito para estas fechas: 😂🤪","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSTTkqIEiQO/","o":"Ezekiel Cruz","p":"ezekielcruz_","c":"Music candy cane walk. This has been my favorite the last three years. #christmas #ch","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSlRInngbEG/","o":"Lina Besada Broche | PGC Luxury Jew","p":"prettygirlcharm","c":"We are not hosting a boring Christmas party on my watch 🎄✨ Here are 5 holiday games t","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSt1uVqjklh/","o":"JULLIA S","p":"jullia_sokol","c":"Рождество обречено быть веселым если ты обрел настоящих друзей ❤️🎄","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DRBZBiAjOdx/","o":"The Smily Fam","p":"thesmilyfam","c":"Rock, Paper, Scissors Race! Boys vs Girls @thesmilyfam","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DS3ePfEARB8/","o":"InspireAndThrive | Mindset & Cultur","p":"inspireandthrive.c","c":"Enregistre si tu continues même quand tu ne vois pas encore les résultats. Partage si","cat":"Coaching","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DR8KP4zjFMV/","o":"uliya_liya2011","p":"uliya_liya2011","c":"","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DS07ZuegQa6/","o":"Neary Mam Hang","p":"hangneary","c":"We take Christmas games very seriously in this family. 🤣🤣🤣 #christmasgames #christmas","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSQ8pNjjD2u/","o":"Mr. Holiday Helper","p":"mrholidayhelper","c":"Nothing’s more festive than boys vs girls at Christmas game night 🎄😂 #Santa #CandyCan","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSWDU2gDo9T/","o":"Anel Medina","p":"anellachula","c":"Este juego como me hizo reír … súper divertido 🎄🥰","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSu5QYjCB9b/","o":"𝗦𝗔𝗕𝗥𝗜𝗡𝗔 FERNANDEZ | 𝗗𝗜𝗚𝗜𝗧𝗔𝗟 𝗡𝗢𝗠𝗔𝗗𝗘 ","p":"sabrina.fc.digital.nomade","c":"👉🏻 10 IDÉES DE JEUX TESTÉS ET VALIDÉS PAR MA FAMILLE, À FAIRE À NOËL ! 😜  🎄 JEU 1 – S","cat":"Football","fb":false},
+{"date":"2025-12-30","url":"https://www.instagram.com/reel/DSsTPv5CN4T/","o":"Carlota PimeGar","p":"carlotapimegar","c":"Las olimpiadas navideñas del aserradero 🎄🎅🏼🎉  #Navidad #familytime #familia #juegos #","cat":"Football","fb":false},
+{"date":"2025-12-28","url":"https://www.instagram.com/reel/DSvfP4sjL4X/","o":"MartinaMartino🎈","p":"doppiaemme20","c":"Siete tanti a Natale ? Nahhh solo 30! 😅 Buon Natale a tutti 🥰♥️🎄","cat":"Football","fb":false},
+{"date":"2025-12-27","url":"https://www.instagram.com/reel/DSuEHPciYm0/","o":"Victoria Williams 🇬🇧🇫🇷 | living in ","p":"partir_vivre_ailleurs","c":"🥺 je vais encadrer cette photo !  j'ai trop envie de pleurer !  Ils grandissent trop ","cat":"Football","fb":false},
+{"date":"2025-12-23","url":"https://www.instagram.com/reel/DSh8kjAEc3B/","o":"Tsagana_24","p":"tsagana_24","c":"My true purpose❤️#momlife #momhack #maternity #kids #love","cat":"Football","fb":false},
+{"date":"2025-12-22","url":"https://www.instagram.com/reel/DSSvEH0jmZ4/","o":"Aurélia BT","p":"aureliabt_","c":"Championnat officiel de lutin kart (cintres)  #lutins #humour #lutinfarceur #mariobro","cat":"Football","fb":false},
+{"date":"2025-12-22","url":"https://www.instagram.com/reel/DSh69N9DDaj/","o":"Stephanie Lewis","p":"stephlovespeace","c":"Changed it up this year! We didn’t decorate cookies or ornaments but still had lots o","cat":"Football","fb":false},
+{"date":"2025-12-21","url":"https://www.instagram.com/reel/DSidPGtD8Re/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️Conditional Transition Game: Attack–Defense 3v2 by Hans de Jong🇳🇱  🖌️Telestration w","cat":"Tactique","fb":true},
+{"date":"2025-12-21","url":"https://www.instagram.com/reel/DSIGhhLlN21/","o":"The Smily Fam","p":"thesmilyfam","c":"First to 3 rolls Wins! 🤣 #christmas #party #games","cat":"Football","fb":false},
+{"date":"2025-12-21","url":"https://www.instagram.com/reel/DSar_vQkpHi/","o":"The Smily Fam","p":"thesmilyfam","c":"Christmas Sweater Relay Race! #christmas #family #game","cat":"Football","fb":false},
+{"date":"2025-12-21","url":"https://www.instagram.com/reel/DShiGi3DGYf/","o":"Nemo | Animatrice Nord-Isère/Bourgo","p":"nemo_lanimatrice","c":"🎄 Le jeu PARFAIT pour Noël (salon ou extérieur) 😂  Deux équipes Un parcours Un CHIFOU","cat":"Football","fb":true},
+{"date":"2025-12-21","url":"https://www.instagram.com/reel/DSad0KvCRnI/","o":"Smiles Family Gameplay","p":"the_ssmiles_famiily1","c":"Wrapping Paper Challenge!","cat":"Football","fb":false},
+{"date":"2025-12-21","url":"https://www.instagram.com/reel/DSiUImmggiD/","o":"THOMAS","p":"coach.tms","c":"Pour toutes les équipes et tous les défenseurs, maîtriser le marquage préventif est e","cat":"Coaching","fb":true},
+{"date":"2025-12-16","url":"https://www.instagram.com/reel/DSQKmlQkWVf/","o":"Yang Shang","p":"shangyang_jeff","c":"When the music stops…🥳","cat":"Football","fb":false},
+{"date":"2025-12-16","url":"https://www.instagram.com/reel/DSQJf0ggiGK/","o":"Houston Maternity photographer | Ya","p":"yancyvillatorophotography","c":"The goal? Get the Post-it off without using your hands, just shake it off! 😂 Last nig","cat":"Football","fb":true},
+{"date":"2025-12-14","url":"https://www.instagram.com/reel/DSKiAJZDo5A/","o":"Stephanie & Katrina | Crafty Moms","p":"crafty.moms","c":"In this video, I’m sharing 5 super simple holiday games you can play with family, fri","cat":"Football","fb":false},
+{"date":"2025-12-14","url":"https://www.instagram.com/p/DSJ0Cq-Crb0/","o":"David Melloul | Coach perte de poid","p":"davfit_coach_sportif","c":"🍌🍊🥝🍒 Et si ton sommeil commençait dans ton assiette ?  Certains fruits consommés le s","cat":"Coaching","fb":true},
+{"date":"2025-12-11","url":"https://www.instagram.com/reel/DSDpKzWEnG_/","o":"PediatricDentistryMullicaHill","p":"pediatricdentistrymullica","c":"On the 11th Game of Christmas…","cat":"Football","fb":false},
+{"date":"2025-12-09","url":"https://www.instagram.com/reel/DR9OZ3yjHpT/","o":"Héloïse Lego","p":"chateau.leg0","c":"| Tu ajouterais quels films de Noël à cette liste❓  #ChristmasMovies #Noel","cat":"Football","fb":false},
+{"date":"2025-12-09","url":"https://www.instagram.com/reel/DSA1B6wjMHd/","o":"Nemo | Animatrice Nord-Isère/Bourgo","p":"nemo_lanimatrice","c":"Vous cherchez LE jeu de Noël qui met tout le monde d’accord en 30 secondes ? Celui qu","cat":"Football","fb":false},
+{"date":"2025-12-08","url":"https://www.instagram.com/p/DSAHoGgiOIq/","o":"Once Sport","p":"oncesport11","c":"RC Lens + Pierre Sage + @arret_flash + Once Sport = Recipe for success ❤️💛✅  RC Lens ","cat":"Football","fb":true},
+{"date":"2025-12-07","url":"https://www.instagram.com/reel/DR4dznJjNCJ/","o":"Football Coaching Lab | Petros Dimo","p":"football_coaching_lab","c":"Bayern Munich – Dynamic Positional Passing Circuit Under Vincent Kompany 🔴⚪️  ⚡ A hig","cat":"Entraînement","fb":true},
+{"date":"2025-12-04","url":"https://www.instagram.com/reel/DR0k2HsiIke/","o":"Premier League","p":"premierleague","c":"Federico Chiesa stops a Sunderland stoppage-time winner, Robin Roefs can't believe it","cat":"Football","fb":false},
+{"date":"2025-11-29","url":"https://www.instagram.com/reel/DRonM5hDjSw/","o":"Sky Sports Football","p":"skysportsfootball","c":"'For me, the system is not really relevant ' 👀 Crystal Palace boss Oliver Glasner giv","cat":"Tactique","fb":true},
+{"date":"2025-11-28","url":"https://www.instagram.com/reel/DRmV7SOj-f5/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️Attack v Defense '2GK's + 7v5 + GK' - Lukasz Jankowski (Lechia Gdańsk)🇵🇱  🖌️Telestr","cat":"Coaching","fb":true},
+{"date":"2025-11-27","url":"https://www.instagram.com/reel/DRiIp_-E0jm/","o":"Pavel Saharevsky","p":"pablobefirst","c":"Arsenal strike again from a set piece! The Gunners prove once more why they’re the tr","cat":"Entraînement","fb":true},
+{"date":"2025-11-27","url":"https://www.instagram.com/reel/DRiXMOXDB5z/","o":"Takaharu Osako","p":"takaharu_osako","c":"The @crismosquera4 & @jurrientimber run🔥 Arsenal’s secret weapon at set pieces⁉️🔴⚪️ #","cat":"Entraînement","fb":false},
+{"date":"2025-11-23","url":"https://www.instagram.com/reel/DRZ9f4DiHlx/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔴 FC Barcelona 9v9 + 2 Setup  📏 Dimensions: 38m (W) x 36m (L)  🔁 Progressions  1️⃣ 9v","cat":"Entraînement","fb":false},
+{"date":"2025-11-20","url":"https://www.instagram.com/reel/DRR4XWWD4jM/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"At @scdelhi.official, Polish head coach @_ttchorz works the details of building up fr","cat":"Coaching","fb":true},
+{"date":"2025-11-20","url":"https://www.instagram.com/reel/DRSHiiUCnlp/","o":"Standard de Liège","p":"standard_rscl","c":"Application. 🎯","cat":"Football","fb":false},
+{"date":"2025-11-20","url":"https://www.instagram.com/p/DRPVXeIE-m4/","o":"Franck Nicolas","p":"francknicolasofficiel","c":"Tu n’as pas besoin de chance. Tu as besoin de clarté, de concentration et d’action.  ","cat":"Football","fb":true},
+{"date":"2025-11-19","url":"https://www.instagram.com/reel/DPqbkp3D_R6/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"⚪⚫️ Germany national team combination setup  🌐 New training sessions with complete la","cat":"Entraînement","fb":true},
+{"date":"2025-11-19","url":"https://www.instagram.com/reel/DP8a6LLjExH/","o":"Gabriele Grizzuti | Football Specia","p":"gabrielegrizzuti","c":"Barcelona is one of the most exciting team to watch. It means knowing where and when ","cat":"Football","fb":true},
+{"date":"2025-11-19","url":"https://www.instagram.com/reel/DRFeTL7jB24/","o":"Valenciennes FC 🦢","p":"vafcofficiel","c":"La causerie du coach Blois, avant le derby de notre équipe réserve face à Maubeuge 👊 ","cat":"Coaching","fb":true},
+{"date":"2025-11-18","url":"https://www.instagram.com/reel/DMb7WByupFd/","o":"Vector","p":"__vector__","c":"Homemade hologram","cat":"Football","fb":false},
+{"date":"2025-11-18","url":"https://www.instagram.com/reel/DQEvGoACAf4/","o":"Alexie Margaux","p":"alexie_cocogrowth","c":"1️⃣ Apprends moi à construire quelque chose qui dure  « Agis comme un mentor qui m’ai","cat":"Football","fb":false},
+{"date":"2025-11-18","url":"https://www.instagram.com/reel/DRJ-Jq-jEx-/","o":"Gabriele Grizzuti | Football Specia","p":"gabrielegrizzuti","c":"Gillingham set-piece analyst deserves a reward. Corner solution against zonal marking","cat":"Entraînement","fb":true},
+{"date":"2025-11-18","url":"https://www.instagram.com/reel/DQ_hSUbCF9s/","o":"UEFA Europa League","p":"europaleague","c":"Straight from the training ground 🤝  #UEL","cat":"Entraînement","fb":true},
+{"date":"2025-11-18","url":"https://www.instagram.com/p/DRNbhthDAAJ/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"Mikel Arteta – Position-Based Finishing Drill.  📚I’ve put all my football eBooks in o","cat":"Entraînement","fb":true},
+{"date":"2025-11-18","url":"https://www.instagram.com/reel/DRMzaq9COvo/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔵 K.R.C Genk 4v2 into 5v4  🎯 Objective:  Win the ball and score during the 5v4 breako","cat":"Football","fb":true},
+{"date":"2025-11-17","url":"https://www.instagram.com/p/DQT_bPfDrB8/","o":"Onside - Training","p":"onside_training","c":"Finishing with Diagonal Runs ⚽️🎯Football/Soccer Drill   This drill is perfect for imp","cat":"Entraînement","fb":true},
+{"date":"2025-11-14","url":"https://www.instagram.com/reel/DRA88JuD3M0/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"Lukasz Jankowski shows us an excellent training context to work on numerical superior","cat":"Entraînement","fb":true},
+{"date":"2025-11-12","url":"https://www.instagram.com/reel/DQ7Ou53jNfI/","o":"VMB ⭐️ Football Academy","p":"vmb.academy","c":"Faites briller les qualités de vos coéquipiers plutôt qu’exposer leur défauts 🧠  Chaq","cat":"Coaching","fb":true},
+{"date":"2025-11-11","url":"https://www.instagram.com/reel/DOMOXOQjHDY/","o":"Ricardo Araujo/\tFootball Coach","p":"ricardoaraujoteam","c":"Pequeno jogo 3x2 e uma transição ofensiva 4x3 + G , mais uma boa ideia de treinos. Se","cat":"Coaching","fb":true},
+{"date":"2025-11-11","url":"https://www.instagram.com/reel/DQt6Arbjm2O/","o":"Professor de Futebol Robinho","p":"personal_robinho","c":"Situação de jogo real: 1vs1 virando 2vs2! ⚽️💥  Começamos com o duelo de 1vs1, cada um","cat":"Football","fb":true},
+{"date":"2025-11-11","url":"https://www.instagram.com/reel/DQwCStoDRTi/","o":"آریا اف سی","p":"ariya8.fc","c":"ضربه کرنر ، تیم هماهنگ ،بازیکن باهوش، و ضربه آخر  Corner kick, coordinated team Smart","cat":"Entraînement","fb":true},
+{"date":"2025-11-11","url":"https://www.instagram.com/reel/DQ4z2HWjL4N/","o":"FOOTBALL, EXPLAINED","p":"tacticssimplified","c":"Amazing free kick routine by @sunderlandafc 🔴⚪️  Predict Sunderland’s position👇","cat":"Entraînement","fb":true},
+{"date":"2025-11-11","url":"https://www.instagram.com/reel/DPcL-QZjycH/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔴⚪ Ajax Pre-Match Combination Setup as part of warm-up  🌐 New training sessions with ","cat":"Entraînement","fb":true},
+{"date":"2025-11-11","url":"https://www.instagram.com/reel/DOoHafujWCJ/","o":"ouf2foot","p":"ouf2foot","c":"📂 TRANSITION DEF / LIGNE DE 4️⃣   #soccer #futbol #training #football #transition #de","cat":"Entraînement","fb":true},
+{"date":"2025-11-11","url":"https://www.instagram.com/reel/DQ6-2m1DHDR/","o":"Pro League","p":"proleaguebe","c":"Another view. Same intensity. 😤  #jupilerproleague","cat":"Football","fb":false},
+{"date":"2025-11-11","url":"https://www.instagram.com/p/DQ6Xg8lCl7l/","o":"languedebut","p":"languedebut","c":"Les défaites mènent vers la victoire 🔥","cat":"Football","fb":false},
+{"date":"2025-11-11","url":"https://www.instagram.com/p/DQ4SESmjLfS/","o":"💙 TON QUOTIDIEN FOOT ⚽️","p":"footidien.off","c":"🤯 SURPRISE : Après 11 journées de Premier League, le Sunderland du coach français Rég","cat":"Coaching","fb":true},
+{"date":"2025-11-09","url":"https://www.instagram.com/reel/DQw9GFRjSH2/","o":"Foot Session","p":"foot.session","c":"🎯 Tu crois qu’un défenseur central n’a que deux choix : jouer court ou dégager ? En r","cat":"Entraînement","fb":true},
+{"date":"2025-11-09","url":"https://www.instagram.com/reel/DQzuCUbDeJ_/","o":"CoachingSoccer 👉🏻⚽️","p":"_coachingsoccer_","c":"SETPIECE IDEA 💡 👨🏻‍🏫Mister Gasperini > Atalanta & AsRoma Stagione 24/25 & Stagione 25","cat":"Coaching","fb":true},
+{"date":"2025-11-07","url":"https://www.instagram.com/reel/DM0FlPrKUoj/","o":"C_wie_coach","p":"c_wie_coach","c":"🎯⚡ Eckball-Variante – überrasche den Gegner!  Standards entscheiden Spiele – mit Krea","cat":"Coaching","fb":true},
+{"date":"2025-11-06","url":"https://www.instagram.com/p/DQt1kThDXSb/","o":"Stade Rennais F.C.","p":"staderennaisfc","c":"🔴⚫️🎥","cat":"Football","fb":false},
+{"date":"2025-11-06","url":"https://www.instagram.com/reel/DO0dhEsjIvm/","o":"fan louis de Funès","p":"fan_louis_de_funes_","c":"😂😂#louisdefunès","cat":"Football","fb":false},
+{"date":"2025-11-05","url":"https://www.instagram.com/reel/DQrmFzFDV9K/","o":"Football Club de Versailles","p":"fcversailles","c":"« Je vais être sur tes côtes. » 😤  Découvrez notre directeur de la performance @fonde","cat":"Football","fb":true},
+{"date":"2025-11-05","url":"https://www.instagram.com/reel/DQqmWuZCG0y/","o":"Yurii Kaliuzhnyi","p":"klznyi","c":"FREE KICK - MORE DETAILS 👉🏼👉🏼👉🏼  Team: Ahrobiznes Manager: Oleksandr Chyzhevskyi  Cre","cat":"Entraînement","fb":true},
+{"date":"2025-11-05","url":"https://www.instagram.com/p/DQrYX_xDDow/","o":"Union Rochefortoise","p":"union_rochefortoise","c":"Tous portent les mêmes couleurs, avec la même envie : 𝒇𝒂𝒊𝒓𝒆 𝒃𝒓𝒊𝒍𝒍𝒆𝒓 𝑹𝒐𝒄𝒉𝒆𝒇𝒐𝒓𝒕 💙 Parce","cat":"Football","fb":false},
+{"date":"2025-11-05","url":"https://www.instagram.com/reel/DQmNFx7jL1z/","o":"Prime Story Media","p":"primestorymedia","c":"تمرین آخر بایرن مونیخ، قبل از بازی حساس فرداشب با پاریسی‌ها. بایرن با ۱۵ برد پیاپی تا","cat":"Football","fb":true},
+{"date":"2025-11-04","url":"https://www.instagram.com/reel/DQYptz1DOkY/","o":"TopFoot","p":"topfoot_tv","c":"L’avenir du football ✨ #football #foot #topfoot #émotion","cat":"Football","fb":true},
+{"date":"2025-11-04","url":"https://www.instagram.com/reel/DQkh3HpDXUh/","o":"Emilio Buccheri Allenaremaniaoffici","p":"allenaremania.com_officia","c":"Atletico Madrid First Team High-intensity defensive work for the full-backs and centr","cat":"Football","fb":true},
+{"date":"2025-11-04","url":"https://www.instagram.com/reel/DQmk4ipCHsv/","o":"Modern Soccer Coach","p":"modernsoccercoach","c":"High Tempo Sessions⚽  #modernsoccercoach","cat":"Entraînement","fb":true},
+{"date":"2025-11-04","url":"https://www.instagram.com/reel/DQccC_0iKEo/","o":"beIN SPORTS FRANCE","p":"beinsports_fr","c":"🎙️ Jean-Charles Sabattier explique la patte Kompany :  'Le Bayern Munich, c'est en mo","cat":"Football","fb":true},
+{"date":"2025-11-03","url":"https://www.instagram.com/reel/DQhKUm2CjvI/","o":"Apex.Analysis1","p":"apex.analysis1","c":"Lazio playing over Atalanta’s man-to-man press by dropping deep to Isolate their defe","cat":"Tactique","fb":true},
+{"date":"2025-11-03","url":"https://www.instagram.com/reel/DQmtpt0jZqn/","o":"CoachingSoccer 👉🏻⚽️","p":"_coachingsoccer_","c":"CORNER IDEA 💡👨🏻‍🏫 Cristian Chivu ⚫️🔵 ——————— #corner #setpiece #chivu #soccer #calcio","cat":"Entraînement","fb":true},
+{"date":"2025-11-03","url":"https://www.instagram.com/reel/DQmfwedguxC/","o":"THOMAS","p":"coach.tms","c":"Dans un match de football où le temps passé sans ballon est immense, il en devient es","cat":"Coaching","fb":true},
+{"date":"2025-11-03","url":"https://www.instagram.com/reel/DQllPwhjPdG/","o":"Union Rochefortoise","p":"union_rochefortoise","c":"❔Comment bien démarrer la semaine ? En revoyant le premier goal de notre @n.azevedo10","cat":"Football","fb":true},
+{"date":"2025-11-01","url":"https://www.instagram.com/reel/DGc-HL3IWmgrhPvcypXgtCCSpu-ZmjFvptwI440/","o":"ZZİ FA ⚽️","p":"zzifootball","c":"Liverpool Corner Kick Set Piece💯  Duran Top Organizasyonu ⚽️🚀   Daha Fazlası İçin; Be","cat":"Entraînement","fb":true},
+{"date":"2025-11-01","url":"https://www.instagram.com/reel/DQPQcwvDMEt/","o":"CoachingSoccer 👉🏻⚽️","p":"_coachingsoccer_","c":"💡SET-PIECE IDEA 💡⚽️❤️🇦🇷 ————————————————— #calcio #seriea #football #setpiece #matcha","cat":"Tactique","fb":true},
+{"date":"2025-11-01","url":"https://www.instagram.com/reel/DI59mQ9t2yx/","o":"FootballTipsHouse","p":"footballtipshouse","c":"Great set piece by Dinamo Kiev 💫  FOLLOW @footballtipshouse FOR MORE 💯  By: @kaliuzny","cat":"Entraînement","fb":true},
+{"date":"2025-10-30","url":"https://www.instagram.com/reel/DQZAR85jZOz/","o":"OCEBEAU 💕","p":"ocebeauuu","c":"Des copines en roue libre, des jeux aussi absurdes les uns des autres, des fous rires","cat":"Football","fb":false},
+{"date":"2025-10-30","url":"https://www.instagram.com/reel/DQaINgNiHgB/","o":"The Carabao Cup","p":"thecarabaocup","c":"Players v Coaches in the @spursofficial warm up! 😅  #EFL | #CarabaoCup","cat":"Entraînement","fb":true},
+{"date":"2025-10-29","url":"https://www.instagram.com/reel/DM6FECeMUeW/","o":"Skerdi Dervishaj","p":"skerdi__dervishaj","c":"⚽✅","cat":"Football","fb":false},
+{"date":"2025-10-29","url":"https://www.instagram.com/reel/DO8FxrzDUwZ/","o":"ouf2foot","p":"ouf2foot","c":"📂 POSSESSION ET TRANSITIONS (5x4)  🎯 OBJECTIFS :   - Équipe en possession doit effect","cat":"Entraînement","fb":true},
+{"date":"2025-10-29","url":"https://www.instagram.com/reel/DQOZhEADRR6/","o":"ouf2foot","p":"ouf2foot","c":"📂 Jeu de progression (2+1×2 ➡️ 3x2)  🔍 Utilisation du joueur référence entre les lign","cat":"Coaching","fb":true},
+{"date":"2025-10-29","url":"https://www.instagram.com/reel/DQP2RA1DRKH/","o":"ouf2foot","p":"ouf2foot","c":"📂 🔥Contre-attaque🔥   PT 1 : 3x2  PT 2 : 5x4   🔍 Contre-attaque avec utilisation du 'F","cat":"Football","fb":true},
+{"date":"2025-10-29","url":"https://www.instagram.com/reel/DQX4Wx2AnJC/","o":"The Football Analyst","p":"the.football_analyst","c":"PSG breaking lines training drill.   #football #footballcoach #footballtactics #footb","cat":"Entraînement","fb":true},
+{"date":"2025-10-28","url":"https://www.instagram.com/reel/DPwabDMEZ_3/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Leeds United 3-Team Rondo to Goal 💛💙⚽ A competitive transition-based rondo designed f","cat":"Entraînement","fb":true},
+{"date":"2025-10-28","url":"https://www.instagram.com/reel/DOJH0e-CORK/","o":"Lukáš Galovič | Soccer Growth & Per","p":"best.soccer.coach","c":"Massimiliano Allegri Training  For more content, follow @best.soccer.coach   Subscrib","cat":"Entraînement","fb":true},
+{"date":"2025-10-28","url":"https://www.instagram.com/reel/DKF8GdYIUn4/","o":"footballfitnessdrills","p":"footballfitnessdrills","c":"⚽️ Comment “50”, receive 50+ drills in your DM’s (completely free)","cat":"Entraînement","fb":true},
+{"date":"2025-10-28","url":"https://www.instagram.com/reel/DQR2cbqDHP2/","o":"Tactical Touch","p":"tacticaltouchh","c":"• AC Milan - Finishing Training 🔴🔥   • @tacticaltouchh   #acmilan #milan #allegri #fo","cat":"Entraînement","fb":true},
+{"date":"2025-10-28","url":"https://www.instagram.com/reel/DQUk_EuDCo9/","o":"Marc Dugenie | Psychologue & prépar","p":"marc.sportmental","c":"La plupart des sportifs ne le savent pas mais, le cerveau ne fait presque pas la diff","cat":"Coaching","fb":true},
+{"date":"2025-10-28","url":"https://www.instagram.com/reel/DQWpL2yDq4a/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Brazil 9v2 Rondo to Goal 🇧🇷⚽ A Brazilian-inspired high-tempo rondo that blends posses","cat":"Entraînement","fb":true},
+{"date":"2025-10-27","url":"https://www.instagram.com/reel/DP1gYcojCOf/","o":"FOOTBALL, EXPLAINED","p":"tacticssimplified","c":"🗣️ “Playing football is simple. Playing simple football is the hardest thing to do”. ","cat":"Tactique","fb":true},
+{"date":"2025-10-26","url":"https://www.instagram.com/reel/DQOmpMrDC0T/","o":"Ingenios","p":"ingenios_oficial","c":"🔥 ¡La Intensidad de Xabi Alonso en el entrenamiento previo al Clásico!  #realmadrid #","cat":"Football","fb":false},
+{"date":"2025-10-26","url":"https://www.instagram.com/reel/DQRR6C8iMMw/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🇪🇸 3v3 + 3 Possession Setup from Spain  Dimensions: 16m (L) x 8m (W)  ⚽ One team work","cat":"Entraînement","fb":false},
+{"date":"2025-10-25","url":"https://www.instagram.com/reel/DQO1UQyjyej/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔵⚪ Manchester City Training This Week — 3v3 + 3 Setup  🏆 Points: 1️⃣ for a direct goa","cat":"Entraînement","fb":true},
+{"date":"2025-10-25","url":"https://www.instagram.com/p/BqJwFtnn0hd/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"Set Piece - Block off Routine AFC Bournemouth #keepitonthedeck #soccer #football #set","cat":"Entraînement","fb":true},
+{"date":"2025-10-23","url":"https://www.instagram.com/reel/DQFQssYjds3/","o":"A U R É L I E  🕊","p":"aureliejeanne","c":"Force à toutes les copines, la saison commence 🤧  Ma question est : pourquoi sont-il ","cat":"Football","fb":true},
+{"date":"2025-10-23","url":"https://www.instagram.com/reel/DQHt5W-jM92/","o":"Busta Busty","p":"busta.busty","c":"Bientôt au cinéma #parodie #humour #drole #belgique #carapils #fourire #partage","cat":"Football","fb":false},
+{"date":"2025-10-23","url":"https://www.instagram.com/reel/DQJqYnjDjWM/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Sean Dyche Nottingham Forest Passing Activation 🌲⚽ A structured activation focused on","cat":"Entraînement","fb":true},
+{"date":"2025-10-22","url":"https://www.instagram.com/reel/DQHxoLKiNjE/","o":"WAZ VfL Bochum","p":"waz_vfl","c":"Ibrahima Sissoko arbeitet an seinem Comeback. Nach 45 Minuten im Mannschaftstraining ","cat":"Entraînement","fb":true},
+{"date":"2025-10-21","url":"https://www.instagram.com/reel/DPWrcycjf9L/","o":"Rainer Scharinger","p":"rs8_sport","c":"Fr. 3.10. — Trainer Kongress 🥳⚽️ Sportschule Schöneck- badischer Fußballverband   www","cat":"Football","fb":true},
+{"date":"2025-10-21","url":"https://www.instagram.com/reel/DNEmYe1vR_5/","o":"Rodrigo Barraza","p":"rodribarraza.va","c":"🎥 Del campo de entrenamiento al partido. Una rueda de pases diseñada según el modelo ","cat":"Football","fb":false},
+{"date":"2025-10-21","url":"https://www.instagram.com/reel/DOgHiUFjFpK/","o":"Football Coaching Lab | Petros Dimo","p":"football_coaching_lab","c":"✅New finishing drill inspired by Pep Guardiola's Manchester City training! 📘Get more ","cat":"Entraînement","fb":true},
+{"date":"2025-10-19","url":"https://www.instagram.com/p/DP6uTZ-k06E/","o":"Alex Nevzorov 🇫🇷","p":"alex_nevzorov_fr","c":"Comment assurer la sécurité de ses enfants ? Malheureusement, il n’existe aucun endro","cat":"Football","fb":false},
+{"date":"2025-10-19","url":"https://www.instagram.com/reel/DP_0DY0kU7S/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"AS Monaco Technical Passing Activation 🔴⚪⚽ A high-tempo technical exercise that sharp","cat":"Entraînement","fb":true},
+{"date":"2025-10-18","url":"https://www.instagram.com/reel/DP4fjW7CLCV/","o":"Dans la Tête d’un Coureur","p":"danslateteduncoureur","c":"Ils vont douter. Ils vont souffrir. Et pourtant, ils vont avancer.  C’est ça, la Diag","cat":"Football","fb":false},
+{"date":"2025-10-17","url":"https://www.instagram.com/reel/DP56u_cjPRi/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"Position Game with Transitions -Paul Simonis.  📚⚽️ 75% offer on all ebooks for footba","cat":"Entraînement","fb":true},
+{"date":"2025-10-16","url":"https://www.instagram.com/p/DPqRUtRjbud/","o":"Johan Djourou","p":"johan_djourou","c":"La différence entre ceux qui avancent et ceux qui stagnent n’est pas l’idée ou la déc","cat":"Football","fb":false},
+{"date":"2025-10-16","url":"https://www.instagram.com/p/DP4c4FDDHuy/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"Amorim Passing drill in Manchester united!  📚ebooks for football coaches in the link ","cat":"Entraînement","fb":true},
+{"date":"2025-10-16","url":"https://www.instagram.com/p/DPmQM6RiPwp/","o":"The Coaches Zone","p":"thecoacheszone","c":"⚽️👇 Activity Description Below  🗣️ This is a practice called ‘Rondo into Cutbacks’ fr","cat":"Entraînement","fb":true},
+{"date":"2025-10-15","url":"https://www.instagram.com/reel/DP0ayVJDCzs/","o":"Marie❤️‍🔥Médium, Mentore business &","p":"marie_amelibre","c":"Non, ChatGPT ne remplacera jamais un tarologue, une cartomancienne, une numérologue… ","cat":"Football","fb":false},
+{"date":"2025-10-15","url":"https://www.instagram.com/reel/DP1i6scDC7k/","o":"Yurii Kaliuzhnyi","p":"klznyi","c":"CORNER KICK - MORE DETAILS 👉🏼👉🏼👉🏼  Team: Bayern Manager: Vincent Kompany Lennart Karl","cat":"Entraînement","fb":true},
+{"date":"2025-10-14","url":"https://www.instagram.com/reel/DPyCppuj13p/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️From '2v1+GK to 3v2+GK' - Just Football Academy  🖌️Telestration with @tactic_rt by ","cat":"Tactique","fb":true},
+{"date":"2025-10-13","url":"https://www.instagram.com/reel/DPtO4BjjKI_/","o":"Yoann Fabulet","p":"yoann_fabulet_pro","c":"Les matchs ne te testent pas. Tes entraînements, eux, le devraient. »  Si tu souffres","cat":"Entraînement","fb":true},
+{"date":"2025-10-12","url":"https://www.instagram.com/reel/DJtzz5Zocgz/","o":"Yurii Kaliuzhnyi","p":"klznyi","c":"💡 Idea - Free Kick Liverpool - Arsenal  Team: Arsenal Manager: Mikel Arteta Date: 11/","cat":"Entraînement","fb":false},
+{"date":"2025-10-10","url":"https://www.instagram.com/reel/DPmizP1j_u5/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"3 Teams Position Game '6v(3+3) + 1 neutral player' - Valencia CF - Marcelino García T","cat":"Coaching","fb":true},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DPkKOq8j-tx/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"3 Goals Game 'GK+10v10+2GK's + 2 neutral players' - FC Schalke 04 2024 - Karel Geraer","cat":"Coaching","fb":true},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DPlL-RID7xl/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"Football Speed 'Attacking in Numerical Superiority (1+4)v3+GK' - Real Sociedad 2022 -","cat":"Coaching","fb":true},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DPlNJhJj6Dl/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"'4v4+GK' (Football Speed) - Stade Rennais FC 2025 - Habib Beye","cat":"Coaching","fb":true},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DPkM028D-Fk/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"10v10 Game with 4 goals and 3 Goalkeepers - France 2023 - Didier Deschamps","cat":"Coaching","fb":true},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DOcA8LxiOmt/","o":"Belge Memes","p":"belge.memes","c":"😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂😂 #pourtoi #pourtoii #pourtoi❤️ #belgium #belgique #belgique🇧🇪 #bel","cat":"Football","fb":false},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DPeNxi6kRqD/","o":"Elite Football Coaching Content","p":"tacticallayer","c":"Borussia Dortmund 4v2 Transfer Rondo 🟡⚫⚽ A high-tempo rondo incorporating Goalkeepers","cat":"Entraînement","fb":true},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DPlMYucD6Hc/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"'GK+(1 or 2)v6 with Defensive Transition' - Olympiacos FC 2022 - Pedro Martins","cat":"Tactique","fb":true},
+{"date":"2025-10-09","url":"https://www.instagram.com/reel/DPlKBA2jExW/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"The next exercise is a possession game in which the players move from a smaller pitch","cat":"Entraînement","fb":true},
+{"date":"2025-10-08","url":"https://www.instagram.com/reel/DPhF1CZkbid/","o":"RiseAndHustle","p":"strategic.hustle","c":"Selon une étude de Harvard, les personnes capables de rester calmes sous pression ont","cat":"Tactique","fb":false},
+{"date":"2025-10-08","url":"https://www.instagram.com/reel/DPd-R63jcPa/","o":"ForPro | Individual tactical coachi","p":"forpro.club","c":"For those who want to have more 1-v-1s ⚡️ Save & Repost & Share 📩  Aleksander Isak be","cat":"Tactique","fb":true},
+{"date":"2025-10-08","url":"https://www.instagram.com/p/DPj-gmMDM60/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"SIX football drills from the best coaches.  📚ebooks for football coaches in the link ","cat":"Entraînement","fb":true},
+{"date":"2025-10-07","url":"https://www.instagram.com/reel/DPRoWDkjK38/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"Organisation: 🟡 Organise 10 players in a 4-3-3 formation. 🟡 Arrange 10 mannequins in ","cat":"Entraînement","fb":true},
+{"date":"2025-10-06","url":"https://www.instagram.com/p/DPUINusDfEg/","o":"Chiavi Tattiche","p":"chiavitattiche","c":"🧠💡Le 4 idee di De Zerbi per superare la pressione 1 vs 1 in fase di costruzione.  La ","cat":"Tactique","fb":true},
+{"date":"2025-10-04","url":"https://www.instagram.com/reel/DNAn47ryujL/","o":"Football In the 90s","p":"footballinthe90s","c":"A skinny teenager from Recife, with bow legs and a golden left foot — Rivaldo made hi","cat":"Football","fb":true},
+{"date":"2025-09-27","url":"https://www.instagram.com/reel/DO_oBwHDBjD/","o":"Piacere, tifo Inter!","p":"piacere.tifointer","c":"📍 Alcune immagini esclusive dell’allenamento di oggi. Attacchi ad alta intensità, 1vs","cat":"Football","fb":false},
+{"date":"2025-09-26","url":"https://www.instagram.com/reel/DLbicdLyJcF/","o":"Louix 5.1","p":"imalipusram","c":"🔥 La formule du coupeur de feu C’est une prière. Un code. Une vibration.  🔥 Abonne-to","cat":"Football","fb":true},
+{"date":"2025-09-24","url":"https://www.instagram.com/reel/DO_EMMWDVPl/","o":"Emilio Buccheri Allenaremaniaoffici","p":"allenaremania.com_officia","c":"Dall'allenamento del Manchester City di Pep Guardiola questa interessante proposta di","cat":"Football","fb":false},
+{"date":"2025-09-22","url":"https://www.instagram.com/reel/DO5qFlQjJZ_/","o":"John Dinkota","p":"jd.cutz","c":"Une bonne histoire passe par de bons protagonistes !  La série “Le Club” raconte la s","cat":"Football","fb":false},
+{"date":"2025-09-22","url":"https://www.instagram.com/reel/DO6aVU0DPIX/","o":"Union Rochefortoise","p":"union_rochefortoise","c":"À chaque victoire son cri de guerre !🎶 Revivez, au cœur du groupe, le chant de la vic","cat":"Football","fb":false},
+{"date":"2025-09-20","url":"https://www.instagram.com/p/DO1eu7ojBhE/","o":"Football Coach | Football Drills | ","p":"elite.soccer.coach","c":"Arne Slot - Attack v defense football drill.  📚ebooks for football coaches in the lin","cat":"Entraînement","fb":true},
+{"date":"2025-09-20","url":"https://www.instagram.com/reel/DOysppOjYCQ/","o":"arthurpronoss","p":"arthurpronoss","c":"Abonne toi pour plus de posts: @arthurpronoss","cat":"Football","fb":false},
+{"date":"2025-09-17","url":"https://www.instagram.com/reel/DOoWhbNCtUi/","o":"Best is football","p":"besttofffoot","c":"Séance complète d’1h30 d’entraînement de foot pour le thème sortie de balle et conser","cat":"Entraînement","fb":true},
+{"date":"2025-09-17","url":"https://www.instagram.com/p/DOtWnQSjJcs/","o":"Mental | Société | Biz | Story","p":"highvalue.media","c":"Dans l’histoire de la tech, tout change en une étincelle.  Un produit surgit, renvers","cat":"Coaching","fb":false},
+{"date":"2025-09-15","url":"https://www.instagram.com/reel/DN-d_vDiKo6/","o":"FC Bayern Pathway","p":"fcbayernpathway","c":"The ultimate football tennis point. 😲🔥 Wait for the boys‘ reactions… 🤣  #FCBayernWorl","cat":"Football","fb":true},
+{"date":"2025-09-12","url":"https://www.instagram.com/p/DOg1mx2jBXj/","o":"Ulyces","p":"ulyces.co","c":"🍳🥑 Les œufs et l’avocat, lorsqu’ils sont associés, offrent un mélange étonnamment ric","cat":"Football","fb":false},
+{"date":"2025-09-12","url":"https://www.instagram.com/reel/DOff_G7CA9q/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"⚽ Real Madrid 16x32m possession game  3️⃣ teams of 4 players  1 team presses, 1 keeps","cat":"Entraînement","fb":true},
+{"date":"2025-09-10","url":"https://www.instagram.com/reel/DOb4Ac5j2zE/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🍒 AFC Bournemouth excellent Possession Setup 🔊 Volume up: Hear how it works  👨‍👩‍👦 An","cat":"Entraînement","fb":true},
+{"date":"2025-09-10","url":"https://www.instagram.com/reel/DOab8B5ilfk/","o":"MÀS Positional","p":"maspositional","c":"Hansi Flick🇩🇪 x @fcbarcelona🇪🇸🔵🔴 Positional Game ‘GK+5v5+GK’ in Octagonal Field ♟️ (v","cat":"Football","fb":true},
+{"date":"2025-09-05","url":"https://www.instagram.com/reel/DOOtd0QjfEs/","o":"Soldat de la recherche 🇫🇷 ☨","p":"soldatdelarecherche","c":"🇫🇷 Roger Godfrin, presque 8 ans, venait d’une famille lorraine réfugiée à Oradour. Le","cat":"Football","fb":false},
+{"date":"2025-09-05","url":"https://www.instagram.com/reel/DL-g43zO8JL/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"⚽ Spanish National Team Combination Setup  📥 Download 2025 Plans 📅  🌐 Get them now vi","cat":"Football","fb":false},
+{"date":"2025-09-04","url":"https://www.instagram.com/reel/DNNsX10IzMN/","o":"ADFootballTrainingVideos","p":"adfootballtrainingvideos","c":"5-6 Players Passing Drill  This drill is ideal for small groups and focuses on passin","cat":"Entraînement","fb":true},
+{"date":"2025-09-03","url":"https://www.instagram.com/reel/DOFOx8liCI1/","o":"ᴍᴀᴅʀɪᴅɪsᴛᴀ 🤍👑","p":"001_h_official","c":"Finally, a team was found to foil Flick’s plans 💀","cat":"Football","fb":false},
+{"date":"2025-09-03","url":"https://www.instagram.com/p/DOJE5KsjKQD/","o":"Football DNA | Football Coaching Co","p":"footballdna_","c":"Discover Your Coaching Style 🗣️⁠  ⁠Learn what your coaching style is and explore ways","cat":"Coaching","fb":true},
+{"date":"2025-09-02","url":"https://www.instagram.com/reel/DOGP_nXj-Gx/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔴 Liverpool 5-Phase Setup – straight from the Klopp era  ⚽️ Phases 1–3: Finishing com","cat":"Entraînement","fb":false},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DN85nCjDGLT/","o":"Tri Luc | Spécialiste du nerf Vague","p":"respire.osteopathy","c":"Commente “RESPIRE” pour recevoir gratuitement mon guide de respiration 🧘‍♀️  Tu recev","cat":"Football","fb":false},
+{"date":"2025-09-01","url":"https://www.instagram.com/p/DOEEMT6jMfW/","o":"Data Marv | IA","p":"datamarv_ia","c":"12 sites gratuits à connaître absolument ! 👇🏾  Tu cherches à gagner du temps, booster","cat":"Football","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DMaX5XUti-4/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"This first exercise aims to improve players’ passes and first‑time balls. Players rep","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DMm1hVDt-Bu/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"Freeing up space for a counter-attack can mean moving AWAY from the ball – as shown h","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DNPzXaGtJBw/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"The aim of this exercise is to make the most of the overload to move the ball towards","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DNqLaX2tAt1/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"The first exercise focuses on the fundamental principles of defending in 1v1, 1v2, 2v","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DNz4RgXNQpX/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"Watch former Leverkusen and Benfica coach Roger Schmidt teach pressing principles to ","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DJJ5mkpi4iQ/","o":"mazyartarkibi","p":"_football.training","c":"🔰تنوع تاکتیکی و بازی ترکیبی در فاز حمله   تمرین تمام کنندگی تیمی (Finishing)  در این ","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DJvuSR_hExc/","o":"mazyartarkibi","p":"_football.training","c":"🔰تمرین  دفاعی پاس بلند و دفع  توپ با هدف به منطقه کم خطر  تمرین 3 در مقابل 2 با یک در","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DL7AwW_u2ew/","o":"mazyartarkibi","p":"_football.training","c":"🔰 مفاهیم تاکتیکی: خروج توپ (Salida de balón)   تعریف خروج توپ فرایند سازمان یافته انت","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/C63l3kgt4aT/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"This drill by former Arsenal assistant coach Tony Colbert emphasises quick movement t","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/C_fLNVzOZtG/","o":"FIFA Training Centre","p":"fifatrainingcentre","c":"The goal of this warm-up circuit is to enhance the players’ ability to play quickly, ","cat":"Entraînement","fb":true},
+{"date":"2025-09-01","url":"https://www.instagram.com/reel/DODlJ0IEs5J/","o":"RSC Habay-La-Neuve","p":"rschabaylaneuve","c":"🎥 𝑨𝒖 𝒄œ𝒖𝒓 𝒅𝒖 𝒅𝒆𝒓𝒃𝒚 ! ⚔️❤️  🔄 Revivez 𝗹𝗮 𝘁𝗲𝗻𝘀𝗶𝗼𝗻, 𝗹’𝗶𝗻𝘁𝗲𝗻𝘀𝗶𝘁𝗲́ 𝗲𝘁 𝗹𝗮 𝗷𝗼𝗶𝗲 𝗱𝗲 𝗹𝗮 𝘃𝗶𝗰𝘁𝗼𝗶","cat":"Football","fb":false},
+{"date":"2025-08-30","url":"https://www.instagram.com/reel/DN6maC2DdXh/","o":"JUEGO EN CORTO COACH ACADEMY","p":"juegoencorto","c":"Juego disposición - recuperación. 6vs6vs6+1+gk  Con finalización. . . .  . . . . . . ","cat":"Coaching","fb":true},
+{"date":"2025-08-30","url":"https://www.instagram.com/reel/DN9eslEjy5_/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️💡A great way to train set-pieces is by turning them into a competition between team","cat":"Coaching","fb":true},
+{"date":"2025-08-30","url":"https://www.instagram.com/reel/DN9hqkDj6U-/","o":"Prof. Pedro Mendonça","p":"pedmencoach","c":"⚽️🥅Finishing training is like good hygiene habits — you need to do it every day so th","cat":"Entraînement","fb":true},
+{"date":"2025-08-28","url":"https://www.instagram.com/reel/DN517FwD56K/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"⚽️ Leeds United Combination Setup!  📝 New Session Plans available 🔗 Grab them — link ","cat":"Entraînement","fb":false},
+{"date":"2025-08-28","url":"https://www.instagram.com/reel/DN5ZFmWjzbE/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"📝 Real Madrid 1v1 ➡️ 2v1 Transition Setup  🔗 Grab NEW training session plans — link i","cat":"Entraînement","fb":true},
+{"date":"2025-08-27","url":"https://www.instagram.com/reel/DN2-2YBWsbL/","o":"Emilio Buccheri Allenaremaniaoffici","p":"allenaremania.com_officia","c":"TATTICA INDIVIDUALE FUNZIONALE Dall'allenamento dell'Inter di Cristian Chivu questa p","cat":"Football","fb":true},
+{"date":"2025-08-23","url":"https://www.instagram.com/reel/DNsljhi2jqk/","o":"Emilio Buccheri Allenaremaniaoffici","p":"allenaremania.com_officia","c":"Riproponiamo questo bellissimo schema su Rimessa laterale del Liverpool di Klopp.  Vi","cat":"Football","fb":false},
+{"date":"2025-08-22","url":"https://www.instagram.com/p/DNpuc2uMynJ/","o":"Mental | Société | Biz | Story","p":"highvalue.media","c":"Le pouvoir est une force qui agit tout autour de nous, que nous en soyons conscients ","cat":"Coaching","fb":false},
+{"date":"2025-08-21","url":"https://www.instagram.com/reel/DNnVZBUIY6h/","o":"coachbenjones","p":"coachbenjones","c":"⚽️   #soccer #soccerlife #soccerplayer #futebol #fyp #baller #football #footycoaching","cat":"Entraînement","fb":true},
+{"date":"2025-08-21","url":"https://www.instagram.com/reel/DNfrBAkT5LX/","o":"Playback","p":"playback_analysis","c":"Julian Nagelsmann x FC Bayern #analysis #football #coach #playback #sport #bayern","cat":"Tactique","fb":true},
+{"date":"2025-08-21","url":"https://www.instagram.com/reel/DNnzoRDqAfi/","o":"Emilio Buccheri Allenaremaniaoffici","p":"allenaremania.com_officia","c":"Da un allenamento del Brighton quando l'allenatore era Roberto De Zerbi. Costruzione ","cat":"Football","fb":true},
+{"date":"2025-08-21","url":"https://www.instagram.com/reel/DNibReyKjCr/","o":"C_wie_coach","p":"c_wie_coach","c":"📐🔥 Ecken-Variation – Mehr Tore aus Standards  Standards entscheiden Spiele – mit Krea","cat":"Coaching","fb":true},
+{"date":"2025-08-21","url":"https://www.instagram.com/reel/DMqL08XN2tS/","o":"WERDER Leistungszentrum","p":"werderleistungszentrum","c":"Young-⭐️ im Training 🇦🇹⚽️  ____ #werder #bremen #svw #llgw #werderlz","cat":"Entraînement","fb":true},
+{"date":"2025-08-20","url":"https://www.instagram.com/p/DNiZSNQsLLY/","o":"Psychology Posts | Mental Health","p":"psychologyposts_","c":"Sometimes one picture hits harder than a thousand words.. 👇  They’re simple, but they","cat":"Coaching","fb":false},
+{"date":"2025-08-19","url":"https://www.instagram.com/reel/DMygEEzqOIh/","o":"RetroLand90","p":"retro_land90","c":"#generation90 #annees90 #millenial #souvenirs #retrogaming #annees2000 #nostalgie","cat":"Football","fb":false},
+{"date":"2025-08-19","url":"https://www.instagram.com/reel/DMSJcl2Iafv/","o":"Ultimo","p":"ultimopeterpan","c":"Eh vabbè…♾️❤️","cat":"Football","fb":false},
+{"date":"2025-08-19","url":"https://www.instagram.com/reel/DNeACmxNXm5/","o":"Premier League","p":"premierleague","c":"Chris Wood didn’t even have to look, he knew Elliot Anderson would find him! 🧠","cat":"Football","fb":false},
+{"date":"2025-08-18","url":"https://www.instagram.com/reel/DNPIDXBpjZU/","o":"Yago Tulli DT.","p":"dt.yagotulli","c":"💥 Drill de Ataque Rápido 3vs3 + T.O. 3vs2 💥  ♦️ Orientación Táctica: Sectorial - Inte","cat":"Entraînement","fb":true},
+{"date":"2025-08-17","url":"https://www.instagram.com/reel/DNdoYvVPSS0/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔴⚪ FC Bayern Munich 2v1 continuous  ⚡ Real in-game counter-attack scenarios  📥 Downlo","cat":"Entraînement","fb":true},
+{"date":"2025-08-15","url":"https://www.instagram.com/reel/DNV-I3JoABP/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"⚽✨ Continuous combination & finishing setup — sent to @Keepitonthedeck by friend of t","cat":"Entraînement","fb":false},
+{"date":"2025-08-15","url":"https://www.instagram.com/reel/DNCpGjboRkc/","o":"coachbenjones","p":"coachbenjones","c":"⚽️   #soccer #soccerlife #soccerplayer #futebol #fyp #baller #football #footycoaching","cat":"Entraînement","fb":true},
+{"date":"2025-08-14","url":"https://www.instagram.com/reel/DNTNuQJK11E/","o":"Emilio Buccheri Allenaremaniaoffici","p":"allenaremania.com_officia","c":"Psg final training session before UEFA Super Cup vs Tottenham. Luis Enrique's game pl","cat":"Entraînement","fb":true},
+{"date":"2025-08-13","url":"https://www.instagram.com/reel/DNRsVsmoquc/","o":"The Football Analyst","p":"the.football_analyst","c":"Eddie Howe on the importance of making sacrificial runs to create space for your team","cat":"Football","fb":true},
+{"date":"2025-08-12","url":"https://www.instagram.com/reel/DNRDYy3P0Ym/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🔴 FC Bayern Munich Combination Setup  🎧 Volume UP! ⚡ 3/4 pace runs between sets  📋 Co","cat":"Coaching","fb":true},
+{"date":"2025-08-12","url":"https://www.instagram.com/reel/DNQGHKlN3hn/","o":"Coach Notes","p":"coachnotesofficial","c":"Thomas Frank team talk","cat":"Coaching","fb":true},
+{"date":"2025-08-11","url":"https://www.instagram.com/p/DNNyE-3MOqX/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"👉 Swipe to see all these training setups  ⚽ Manchester United finishing setups under ","cat":"Entraînement","fb":true},
+{"date":"2025-08-10","url":"https://www.instagram.com/reel/DNLvLjHsHv5/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"⚽ Inter Milan Combination Setup  🔄 Bounce passes at each section in the sequence  🆕 B","cat":"Football","fb":true},
+{"date":"2025-08-10","url":"https://www.instagram.com/reel/DNKzM6MP_0m/","o":"TOPLIDERCOACH","p":"toplidercoach","c":"⚫🔵 El Inter de Inzaghi afina detalles con esta rueda de pase 🎯 Pase corto, control or","cat":"Coaching","fb":true},
+{"date":"2025-08-09","url":"https://www.instagram.com/reel/DNISrf5NVRo/","o":"Training Process | Exclusive Footba","p":"_training_process_","c":"Welcome to Training Process   Become a Member (Netflix style) and gain access to my c","cat":"Entraînement","fb":true},
+{"date":"2025-08-07","url":"https://www.instagram.com/reel/DNDT2nDq2In/","o":"Emilio Buccheri Allenaremaniaoffici","p":"allenaremania.com_officia","c":"Dall'allenamento a porte aperte del Manchester City di Pep Guardiola questo interessa","cat":"Football","fb":true},
+{"date":"2025-08-07","url":"https://www.instagram.com/reel/DNB7RxfvFML/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"Details, details, details — this is where Pep Guardiola comes alive. 🔍  Yesterday at ","cat":"Football","fb":true},
+{"date":"2025-08-06","url":"https://www.instagram.com/reel/DNBQFCsvPbr/","o":"www.Keepitonthedeck.com","p":"keepitonthedeck","c":"🚨 Man City 6-Phase Finishing Setup from yesterday’s open training session! 💥  ⚡ High ","cat":"Entraînement","fb":true},
+{"date":"2025-08-05","url":"https://www.instagram.com/reel/DMfxK8XIgR3/","o":"Yurii Kaliuzhnyi","p":"klznyi","c":"Idea - Corner Kick Team: Empoli Manager: Salvatore Sulio Fazzini → Henderson → Gyasi ","cat":"Entraînement","fb":false},
+{"date":"2025-08-05","url":"https://www.instagram.com/reel/DMnZU-7N34j/","o":"5AM Football","p":"5amfootball","c":"Why is he standing still??  In this clip, Ayari displays his ability to control the g","cat":"Football","fb":true},
+{"date":"2025-08-04","url":"https://www.instagram.com/reel/DM8WoliNWMU/","o":"ouf2foot","p":"ouf2foot","c":"🗂️ PRESSING ET TRANSITION OFF ‼️  - Pressing ( 6x3+2 )   ⬇️ - Transition Off ( 5x3+GR","cat":"Tactique","fb":true},
+{"date":"2025-08-04","url":"https://www.instagram.com/reel/DM8CwUyNIs-/","o":"Futbol Hasta el Final","p":"futbol_hastaelfinal","c":"Cambios de orientación. #entrenadoresdefutbol #fútbol #entrenamientosdefutbol #ejerci","cat":"Football","fb":true}];
+
+// ── UTILS ──────────────────────────────────────────────────────
+const CAT_BADGE = {Entraînement:'bb',Tactique:'bc',Coaching:'bi',Football:'bo'};
+const CAT_ICON  = {Entraînement:'⚽',Tactique:'🧩',Coaching:'🧠',Football:'🏆'};
+const PTITLES   = {home:'Tableau de bord',media:'Médiathèque',stats:'Statistiques',tactique:'Tactique',planning:'Planning',notes:'Notes'};
+
+let favorites = JSON.parse(localStorage.getItem('coach_favs')||'[]');
+let sortMode  = 'date';
+let filtMode  = 'all';
+let page      = 0;
+const PER_PAGE = 24;
+
+function hashHue(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h}
+function fmtDate(d){return new Date(d).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'})}
+function isFav(url){return favorites.includes(url)}
+
+function toggleFavEl(el,url){
+  if(isFav(url))favorites=favorites.filter(function(f){return f!==url});
+  else favorites.push(url);
+  localStorage.setItem('coach_favs',JSON.stringify(favorites));
+  el.textContent=isFav(url)?'⭐':'☆';
+  if(filtMode==='fav')renderGrid();
+}
+function toggleFav(url,e){e.stopPropagation();if(isFav(url))favorites=favorites.filter(f=>f!==url);else favorites.push(url);localStorage.setItem('coach_favs',JSON.stringify(favorites));if(filtMode==='fav')renderGrid();else document.querySelectorAll('[data-fav-url]').forEach(function(el){if(el.getAttribute('data-fav-url')===url)el.textContent=isFav(url)?'⭐':'☆'})}
+
+// ── SIDEBAR ────────────────────────────────────────────────────
+let sbCol=false;
+function toggleSB(){
+  sbCol=!sbCol;
+  document.getElementById('sidebar').classList.toggle('collapsed',sbCol);
+  document.getElementById('main').classList.toggle('expanded',sbCol);
+  document.getElementById('tog-icon').textContent=sbCol?'▶':'◀';
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function nav(id,el){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var pg=document.getElementById('page-'+id);
+  if(pg)pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(i){i.classList.remove('active')});
+  if(el){
+    el.classList.add('active');
+  } else {
+    document.querySelectorAll('.nav-item').forEach(function(i){
+      var oc=i.getAttribute('onclick')||'';
+      if(oc.indexOf("'"+id+"'")>=0)i.classList.add('active');
+    });
+  }
+  document.getElementById('ptitle').textContent=PTITLES[id]||id;
+  if(id==='media')renderGrid();
+  else if(id==='stats')renderStats();
+  else if(id==='planning')renderPlanning();
+  else if(id==='notes')renderNotes();
+}
+function goCat(c){
+  nav('media',null);
+  setTimeout(function(){
+    var tabs=document.querySelectorAll('.ftab');
+    for(var i=0;i<tabs.length;i++){
+      var oc=tabs[i].getAttribute('onclick')||'';
+      if(oc.indexOf(c)>=0){filt(c,tabs[i]);break;}
+    }
+  },100);
+}
+
+// ── FILTERED DATA ─────────────────────────────────────────────
+function filtered(){
+  var d=POSTS.slice(0);
+  if(filtMode==='fav')d=d.filter(function(p){return isFav(p.url)});
+  else if(filtMode!=='all')d=d.filter(function(p){return p.cat===filtMode});
+  if(sortMode==='name')d.sort(function(a,b){return a.o.localeCompare(b.o)});
+  return d;
+}
+function filt(f,el){
+  filtMode=f;page=0;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderGrid();
+}
+function sortBy(m){sortMode=m;page=0;renderGrid()}
+function loadMore(){page++;renderGrid()}
+function onSearch(q){
+  const lq=q.toLowerCase().trim();
+  if(!lq){filtMode='all';page=0;renderGrid();return}
+  const results=POSTS.filter(p=>p.o.toLowerCase().includes(lq)||p.p.toLowerCase().includes(lq)||p.c.toLowerCase().includes(lq)||p.cat.toLowerCase().includes(lq));
+  const grid=document.getElementById('media-grid');
+  grid.innerHTML=results.slice(0,48).map(p=>mediaCard(p)).join('');
+  document.getElementById('media-lbl').textContent=results.length+' résultats pour "'+q+'"';
+  document.getElementById('load-more-wrap').style.display='none';
+  if(window.location.hash!=='#media')nav('media',null);
+}
+
+// ── MEDIA GRID ────────────────────────────────────────────────
+function mediaCard(p){
+  var hue=hashHue(p.o);
+  var initials=p.o.split(' ').slice(0,2).map(function(w){return w[0]?w[0].toUpperCase():''}).join('');
+  var fav=isFav(p.url);
+  var isIG=p.url.indexOf('instagram.com')>=0;
+  var isFB=p.url.indexOf('facebook.com')>=0;
+  var platform=isIG?'Instagram':isFB?'Facebook':'Web';
+  var platIcon=isIG?'📷':isFB?'👤':'🔗';
+  var safeUrl=p.url;
+  var catBadge=CAT_BADGE[p.cat]||'bx';
+  var catIcon=CAT_ICON[p.cat]||'⚽';
+  var favStar=fav?'⭐':'☆';
+  var profileHtml=p.p?'<div class="mc-profile">@'+p.p+'</div>':'';
+  var captionHtml=p.c?'<div class="mc-caption">'+p.c+'</div>':'';
+  return '<a class="mc" href="'+safeUrl+'" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:flex;flex-direction:column;color:inherit">'
+    +'<div class="mc-thumb">'
+      +'<div class="mc-thumb-bg">'+catIcon+'</div>'
+      +'<div class="mc-avatar" style="background:hsl('+hue+',45%,14%);border-color:hsl('+hue+',50%,28%);color:hsl('+hue+',75%,68%)">'+initials+'</div>'
+      +'<div class="mc-overlay"><div class="mc-play-btn">&#9654;</div></div>'
+      +'<div class="mc-insta-badge">'+platIcon+' '+platform+'</div>'
+    +'</div>'
+    +'<div class="mc-body" style="flex:1">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">'
+        +'<div style="min-width:0"><div class="mc-owner">'+p.o+'</div>'+profileHtml+'</div>'
+        +'<span onclick="event.preventDefault();event.stopPropagation();toggleFavEl(this,\''+safeUrl+'\')" style="font-size:15px;cursor:pointer;flex-shrink:0;opacity:.75;line-height:1" title="Favori">'+favStar+'</span>'
+      +'</div>'
+      +captionHtml
+      +'<div class="mc-footer">'
+        +'<div><span class="badge '+catBadge+'" style="margin-right:5px">'+p.cat+'</span><span class="mc-date">'+fmtDate(p.date)+'</span></div>'
+        +'<div class="mc-open">&#9654; Ouvrir</div>'
+      +'</div>'
+    +'</div>'
+  +'</a>';
+}
+
+function renderGrid(){
+  const data=filtered();
+  const shown=data.slice(0,(page+1)*PER_PAGE);
+  document.getElementById('media-grid').innerHTML=shown.map(function(p){return mediaCard(p)}).join('');
+  document.getElementById('media-lbl').textContent=data.length+' vidéos · '+shown.length+' affichées · cliquez pour ouvrir';
+  document.getElementById('load-more-wrap').style.display=shown.length<data.length?'':'none';
+  const cntEl=document.getElementById('cnt-all');
+  if(cntEl)cntEl.textContent='('+POSTS.length+')';
+}
+
+function openVideo(url){ window.location.href=url; }
+
+// ── HOME INIT ─────────────────────────────────────────────────
+function initHome(){
+  // Top sources
+  const cnt={};
+  POSTS.forEach(function(p){cnt[p.o]=(cnt[p.o]||0)+1});
+  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0][1];
+  document.getElementById('top-src').innerHTML=sorted.slice(0,8).map(([n,c],i)=>`
+    <div class="src-row">
+      <span class="src-rank">${i+1}</span>
+      <span class="src-name" title="${n}">${n}</span>
+      <div class="src-bar-w"><div class="src-bar" style="width:${Math.round(c/max*100)}%"></div></div>
+      <span class="src-cnt">${c}</span>
+    </div>`).join('');
+
+  // Recent
+  document.getElementById('recent-list').innerHTML=POSTS.slice(0,8).map(p=>`
+    <a class="tl-item" href="${p.url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none">
+      <div class="tl-dot" style="background:${p.cat==='Entraînement'?'var(--blue)':p.cat==='Tactique'?'var(--cyan)':p.cat==='Coaching'?'var(--indigo)':'var(--orange)'}"></div>
+      <div>
+        <div class="tl-txt">${p.o}</div>
+        <div class="tl-meta">${CAT_ICON[p.cat]} ${p.cat} · ${fmtDate(p.date)} · <span style="color:var(--blue)">▶ Voir</span></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function renderStats(){
+  const monthly={};
+  POSTS.forEach(function(p){const m=p.date.substring(0,7);monthly[m]=(monthly[m]||0)+1});
+  const months=Object.keys(monthly).sort();
+  const maxM=Math.max(...Object.values(monthly));
+  document.getElementById('monthly-bars').innerHTML=months.map(m=>`
+    <div class="ch-bar-item" title="${m}: ${monthly[m]}">
+      <div class="ch-bar" style="height:${Math.round(monthly[m]/maxM*108)}px"></div>
+    </div>`).join('');
+  document.getElementById('monthly-labels').innerHTML=months.map(m=>`
+    <div style="flex:1;text-align:center;font-size:9px;color:var(--txt3)">${m.slice(5)}</div>`).join('');
+
+  const cats={Entraînement:0,Tactique:0,Coaching:0,Football:0};
+  POSTS.forEach(function(p){if(cats[p.cat]!==undefined)cats[p.cat]++});
+  const tot=POSTS.length;
+  document.getElementById('cat-breakdown').innerHTML=Object.entries(cats).map(([c,n])=>`
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="color:var(--txt)">${CAT_ICON[c]} ${c}</span>
+        <span style="color:var(--txt2)">${n} (${Math.round(n/tot*100)}%)</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px">
+        <div style="height:100%;width:${n/tot*100}%;background:linear-gradient(90deg,var(--blue2),var(--cyan));border-radius:3px"></div>
+      </div>
+    </div>`).join('');
+
+  const cnt={};
+  POSTS.forEach(function(p){cnt[p.o]=(cnt[p.o]||0)+1});
+  const allSrc=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const mx=allSrc[0][1];
+  document.getElementById('all-src').innerHTML=allSrc.map(([n,c],i)=>`
+    <div class="src-row">
+      <span class="src-rank">${i+1}</span>
+      <span class="src-name" title="${n}">${n}</span>
+      <div class="src-bar-w"><div class="src-bar" style="width:${Math.round(c/mx*100)}%"></div></div>
+      <span class="src-cnt">${c}</span>
+    </div>`).join('');
+
+  // Heatmap
+  const dm={};
+  POSTS.forEach(function(p){dm[p.date]=(dm[p.date]||0)+1});
+  let hm='';
+  const s=new Date('2025-05-01'),e=new Date('2026-05-23');
+  for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
+    const k=d.toISOString().slice(0,10);
+    const n=dm[k]||0;
+    const l=n===0?'':n<=1?'l1':n<=3?'l2':n<=5?'l3':'l4';
+    hm+=`<div class="hm-c ${l}" title="${k}: ${n}"></div>`;
+  }
+  document.getElementById('heatmap').innerHTML=hm;
+}
+
+// ── TACTICAL ──────────────────────────────────────────────────
+const FORMATIONS={
+  '4-4-2':{pos:[{n:'GK',x:170,y:490},{n:'RB',x:295,y:400},{n:'CB',x:225,y:378},{n:'CB',x:115,y:378},{n:'LB',x:45,y:400},{n:'RM',x:295,y:270},{n:'CM',x:220,y:248},{n:'CM',x:120,y:248},{n:'LM',x:45,y:270},{n:'ST',x:215,y:135},{n:'ST',x:125,y:135}]},
+  '4-3-3':{pos:[{n:'GK',x:170,y:490},{n:'RB',x:295,y:400},{n:'CB',x:225,y:378},{n:'CB',x:115,y:378},{n:'LB',x:45,y:400},{n:'CM',x:240,y:268},{n:'CM',x:170,y:248},{n:'CM',x:100,y:268},{n:'RW',x:300,y:138},{n:'ST',x:170,y:108},{n:'LW',x:40,y:138}]},
+  '4-2-3-1':{pos:[{n:'GK',x:170,y:490},{n:'RB',x:295,y:400},{n:'CB',x:225,y:378},{n:'CB',x:115,y:378},{n:'LB',x:45,y:400},{n:'CDM',x:215,y:298},{n:'CDM',x:125,y:298},{n:'RAM',x:285,y:198},{n:'CAM',x:170,y:192},{n:'LAM',x:55,y:198},{n:'ST',x:170,y:108}]},
+  '3-5-2':{pos:[{n:'GK',x:170,y:490},{n:'CB',x:250,y:388},{n:'CB',x:170,y:373},{n:'CB',x:90,y:388},{n:'RWB',x:302,y:278},{n:'CM',x:235,y:253},{n:'CM',x:170,y:238},{n:'CM',x:105,y:253},{n:'LWB',x:38,y:278},{n:'ST',x:215,y:128},{n:'ST',x:125,y:128}]},
+  '5-3-2':{pos:[{n:'GK',x:170,y:490},{n:'RB',x:308,y:408},{n:'CB',x:248,y:383},{n:'CB',x:170,y:373},{n:'CB',x:92,y:383},{n:'LB',x:32,y:408},{n:'CM',x:238,y:253},{n:'CM',x:170,y:238},{n:'CM',x:102,y:253},{n:'ST',x:215,y:128},{n:'ST',x:125,y:128}]},
+};
+const POS_NAMES=['Gardien','Défenseur D','Défenseur C1','Défenseur C2','Défenseur G','Milieu D','Milieu C1','Milieu C2','Milieu G','Attaquant D','Attaquant G','CB3'];
+
+function setForm(name,el){
+  document.querySelectorAll('.form-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const f=FORMATIONS[name];
+  if(!f)return;
+  document.getElementById('form-lbl').textContent='Formation : '+name;
+  document.getElementById('pl-layer').innerHTML=f.pos.map((p,i)=>`
+    <g style="cursor:pointer">
+      <circle cx="${p.x}" cy="${p.y}" r="16" fill="#1e3a6e" stroke="#3b82f6" stroke-width="1.5" opacity=".95"/>
+      <circle cx="${p.x}" cy="${p.y}" r="16" fill="none" stroke="#60a5fa" stroke-width=".5" opacity=".4"/>
+      <text x="${p.x}" y="${p.y+1}" font-family="Inter,sans-serif" font-size="7" font-weight="700" fill="#e2e8f0" text-anchor="middle" dominant-baseline="middle">${p.n}</text>
+    </g>`).join('');
+  document.getElementById('pl-list').innerHTML=f.pos.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;background:var(--bg3)">
+      <div style="width:26px;height:26px;border-radius:50%;background:#1e3a6e;border:1px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#60a5fa;flex-shrink:0">${p.n}</div>
+      <span style="font-size:11px;color:var(--txt2)">${POS_NAMES[i]||p.n}</span>
+    </div>`).join('');
+}
+
+// ── PLANNING ─────────────────────────────────────────────────
+let wkOff=0;
+const DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const TIMES=['09:00','10:00','11:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+const EVENTS=[
+  {d:0,t:'09:00',l:'Séance tactique',c:''},
+  {d:0,t:'16:00',l:'Analyse vidéo',c:'in'},
+  {d:1,t:'10:00',l:'Prépa physique',c:'or'},
+  {d:2,t:'09:00',l:'Séance technique',c:''},
+  {d:2,t:'17:00',l:'Réunion staff',c:'in'},
+  {d:3,t:'10:00',l:'Récupération active',c:'or'},
+  {d:4,t:'09:00',l:'Séance pré-match',c:''},
+  {d:5,t:'15:00',l:'⚽ MATCH',c:'gr'},
+  {d:6,t:'10:00',l:'Récupération',c:'or'},
+];
+function renderPlanning(){
+  const today=new Date();
+  const mon=new Date(today);
+  mon.setDate(today.getDate()-today.getDay()+1+wkOff*7);
+  document.getElementById('wk-lbl').textContent='Semaine du '+mon.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+  let h='<div class="wk-hdr"></div>';
+  for(let i=0;i<7;i++){
+    const dd=new Date(mon);dd.setDate(mon.getDate()+i);
+    const isT=dd.toDateString()===today.toDateString();
+    h+=`<div class="wk-hdr" style="${isT?'color:var(--blue);background:rgba(59,130,246,.08)':''}">${DAYS[i]}<br><span style="font-size:13px;font-weight:700">${dd.getDate()}</span></div>`;
+  }
+  TIMES.forEach(t=>{
+    h+=`<div class="wk-time">${t}</div>`;
+    for(let d=0;d<7;d++){
+      const evts=EVENTS.filter(e=>e.d===d&&e.t===t);
+      h+=`<div class="wk-cell">${evts.map(e=>`<div class="wk-ev ${e.c}">${e.l}</div>`).join('')}</div>`;
+    }
+  });
+  document.getElementById('wk-grid').innerHTML=h;
+}
+function chWk(dir){if(dir===0)wkOff=0;else wkOff+=dir;renderPlanning()}
+
+// ── NOTES ────────────────────────────────────────────────────
+const NOTES=[
+  {title:"Principes défensifs — bloc bas",preview:"Travail sur le 4-4-2 défensif. Pressing déclenché sur porteur côté fermé. Lignes serrées à 15m entre blocs. Couvertures permanentes…",date:"2026-05-20",cat:"Tactique"},
+  {title:"Keepitonthedeck — Top drills",preview:"3 drills récupérés cette semaine. Rondo 4v2 avec transition, 1v1 défensif sous pression, sortie relance gardien…",date:"2026-05-19",cat:"Entraînement"},
+  {title:"Préparation match Samedi",preview:"Adversaire joue en 4-3-3 avec pressing haut. Solutions : jeu long, profondeur dans le dos des défenseurs latéraux…",date:"2026-05-22",cat:"Match"},
+  {title:"Pedro Mendonça — Série vidéo",preview:"Excellente série sur les demi-espaces et les corridors intérieurs. Appliquer sur séance mercredi matin…",date:"2026-05-17",cat:"Analyse"},
+  {title:"Réunion staff mi-saison",preview:"Points positifs : solidité défensive, pressing collectif efficace. Axes d amélioration : finition, coups de pied arrêtés…",date:"2026-04-01",cat:"Staff"},
+  {title:"Analyse adversaire — Prochain match",preview:"Système 4-3-3 avec latéraux très offensifs. Faiblesse identifiée : transitions défensives. Plan : contre-attaque rapide en 3v2…",date:"2026-05-21",cat:"Analyse"},
+];
+const NOTE_CATS={Tactique:'bc',Analyse:'bi',Match:'bg',Entraînement:'bb',Staff:'bo'};
+function renderNotes(){
+  document.getElementById('notes-grid').innerHTML=NOTES.map((n,i)=>`
+    <div class="note" onclick="openNote(${i})">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span class="badge ${NOTE_CATS[n.cat]||'bx'}">${n.cat}</span>
+        <span style="font-size:10px;color:var(--txt3)">${n.date}</span>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:6px">${n.title}</div>
+      <div style="font-size:12px;color:var(--txt2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${n.preview}</div>
+    </div>`).join('');
+}
+function openNote(i){
+  const n=NOTES[i];
+  document.getElementById('m-title').textContent=n.title;
+  document.getElementById('m-body').innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <span class="badge ${NOTE_CATS[n.cat]||'bx'}">${n.cat}</span>
+      <span style="font-size:11px;color:var(--txt2)">📅 ${n.date}</span>
+    </div>
+    <p style="font-size:13px;color:var(--txt2);line-height:1.7;margin-bottom:14px">${n.preview}</p>
+    <textarea style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:12px;padding:12px;resize:vertical;min-height:100px;outline:none;font-family:inherit" placeholder="Continuer cette note…"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="tb-btn primary" onclick="closeM()">💾 Sauvegarder</button>
+      <button class="tb-btn" onclick="closeM()">Fermer</button>
+    </div>`;
+  document.getElementById('m-overlay').classList.add('open');
+}
+function openNewNote(){
+  document.getElementById('m-title').textContent='Nouvelle note';
+  document.getElementById('m-body').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:13px;padding:10px 12px;outline:none;font-family:inherit;width:100%" placeholder="Titre de la note…">
+      <select style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:12px;padding:8px 12px;outline:none;font-family:inherit">
+        <option>Tactique</option><option>Entraînement</option><option>Analyse</option><option>Match</option><option>Staff</option>
+      </select>
+      <textarea style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:12px;padding:12px;resize:vertical;min-height:120px;outline:none;font-family:inherit" placeholder="Votre note…"></textarea>
+      <div style="display:flex;gap:8px">
+        <button class="tb-btn primary" onclick="closeM()">💾 Créer</button>
+        <button class="tb-btn" onclick="closeM()">Annuler</button>
+      </div>
+    </div>`;
+  document.getElementById('m-overlay').classList.add('open');
+}
+
+// ── MODAL ────────────────────────────────────────────────────
+function closeM(){document.getElementById('m-overlay').classList.remove('open')}
+function closeMOuter(e){if(e.target===document.getElementById('m-overlay'))closeM()}
+
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  initHome();
+  setForm('4-4-2',document.querySelector('.form-btn.active'));
+  if(window.innerWidth<900){
+    sbCol=true;
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.getElementById('main').classList.add('expanded');
+    document.getElementById('tog-icon').textContent='▶';
+  }
+});
+</script>
+</body>
+</html>
