@@ -9,7 +9,17 @@
  *   <script src="prepdb_patch_v2.js"></script>
  */
 
-document.addEventListener('DOMContentLoaded', () => setTimeout(applyV2Patches, 300));
+// Exécution immédiate si DOM déjà prêt, sinon attente DOMContentLoaded
+(function tryPatch(attempt) {
+  if (typeof window.renderExercisesList === 'function') {
+    applyV2Patches();
+  } else if (attempt < 20) {
+    setTimeout(() => tryPatch(attempt + 1), 200);
+  }
+})(0);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => setTimeout(applyV2Patches, 100));
+}
 
 function _fmtSec(sec) {
   if (!sec || sec <= 0) return null;
