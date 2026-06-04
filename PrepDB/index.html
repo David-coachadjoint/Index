@@ -4650,5 +4650,147 @@ if (state.settings.user) {
 
 <script src="prepdb_persistance.js"></script>
 
-<script src="prepdb_patch_v2.js?v=3"></script></body>
+<script>
+// ============================================================
+// PrepDB Patch v3 — Inline (séries, récap, PDF téléchargement)
+// ============================================================
+(function() {
+  function _fmtSec(sec) {
+    if (!sec || sec <= 0) return null;
+    if (sec < 60) return sec + 's';
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return s > 0 ? m + 'min' + s + 's' : m + 'min';
+  }
+  function _serieLabel(e) {
+    if (e.tempsSerie > 0) return e.series + ' ser. x ' + _fmtSec(e.tempsSerie);
+    if (e.distSerie > 0) return e.series + ' ser. x ' + e.distSerie + 'm';
+    return e.series + ' ser.';
+  }
+  function _totalExoSec(e) {
+    if (e.dureeTotaleSec > 0) return e.dureeTotaleSec;
+    if (e.tempsSerie > 0 && e.series > 0)
+      return e.tempsSerie * e.series + (e.recup || 0) * Math.max(0, e.series - 1);
+    return (e.duree || 0) * 60;
+  }
+
+  function applyPatches() {
+    // 1. Patch renderExercisesList — affichage séries/temps
+    var _orel = window.renderExercisesList;
+    if (typeof _orel === 'function') {
+      window.renderExercisesList = function() {
+        _orel();
+        if (!window.currentSession) return;
+        var ex = window.currentSession.exercises || [];
+        document.querySelectorAll('#exercisesList .exercise-block').forEach(function(block, i) {
+          var e = ex[i]; if (!e) return;
+          var meta = block.querySelector('.exercise-meta');
+          if (meta) {
+            var totalSec = _totalExoSec(e);
+            meta.innerHTML = '<strong style="color:var(--accent);">' + _serieLabel(e) + '</strong>'
+              + ' · ' + e.duree + ' min · RPE ' + e.rpe + ' · ' + e.nbJoueurs + 'j'
+              + (totalSec > 0 ? ' · ⏱ ' + _fmtSec(totalSec) + ' total' : '');
+          }
+          var grid = block.querySelector('.computed-grid');
+          if (grid && !grid.querySelector('[data-sc]')) {
+            var sc = document.createElement('div'); sc.className = 'computed accent'; sc.dataset.sc = '1';
+            sc.innerHTML = '<div class="computed-label">Séries</div><div class="computed-value">' + e.series + '</div>';
+            var tc = document.createElement('div'); tc.className = 'computed accent'; tc.dataset.sc = '1';
+            var tv = e.tempsSerie > 0 ? e.tempsSerie + '<span style="font-size:11px;">s</span>' : (e.distSerie > 0 ? e.distSerie + '<span style="font-size:11px;">m</span>' : '—');
+            tc.innerHTML = '<div class="computed-label">/ Série</div><div class="computed-value">' + tv + '</div>';
+            grid.prepend(tc); grid.prepend(sc);
+          }
+        });
+      };
+    }
+
+    // 2. Patch renderNewRecap — tableau séries dans récap
+    var _onr = window.renderNewRecap;
+    if (typeof _onr === 'function') {
+      window.renderNewRecap = function() {
+        _onr();
+        if (!window.currentSession) return;
+        var ex = window.currentSession.exercises || [];
+        if (!ex.length) return;
+        var el = document.getElementById('newRecap'); if (!el) return;
+        if (el.querySelector('[data-series-recap]')) return;
+        var rows = ex.map(function(e, i) {
+          var totalSec = _totalExoSec(e);
+          var ps = e.tempsSerie > 0 ? e.tempsSerie + 's' : (e.distSerie > 0 ? e.distSerie + 'm' : '—');
+          var ratio = e.tempsSerie > 0 && e.recup > 0 ? '1:' + (e.recup / e.tempsSerie).toFixed(1) : '—';
+          return '<tr style="border-bottom:1px solid var(--border-soft);"><td style="padding:6px 8px;color:var(--text-dim);font-size:11px;">#' + (i+1) + ' ' + (e.name||e.themeNom) + '</td><td style="padding:6px 8px;text-align:center;font-weight:700;color:var(--accent);">' + e.series + '</td><td style="padding:6px 8px;text-align:center;font-weight:700;color:var(--accent);">' + ps + '</td><td style="padding:6px 8px;text-align:center;color:var(--text-dim);">' + ratio + '</td><td style="padding:6px 8px;text-align:center;color:var(--text-dim);">' + (e.recup > 0 ? e.recup + 's' : '—') + '</td><td style="padding:6px 8px;text-align:center;font-weight:700;color:var(--primary);">' + (totalSec > 0 ? _fmtSec(totalSec) : e.duree + 'min') + '</td></tr>';
+        }).join('');
+        var tS = ex.reduce(function(a, e) { return a + (e.series || 0); }, 0);
+        var div = document.createElement('div'); div.dataset.seriesRecap = '1';
+        div.style.cssText = 'grid-column:1/-1;margin-top:10px;';
+        div.innerHTML = '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px;">Détail séries · <strong style="color:var(--accent);">' + tS + ' séries au total</strong></div>'
+          + '<table style="width:100%;border-collapse:collapse;background:var(--bg-2);border-radius:6px;overflow:hidden;font-size:12px;">'
+          + '<thead><tr style="background:var(--bg-3);"><th style="padding:6px 8px;text-align:left;font-size:10px;color:var(--text-muted);">Exercice</th><th style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted);">Séries</th><th style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted);">/ Série</th><th style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted);">Ratio</th><th style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted);">Récup</th><th style="padding:6px;text-align:center;font-size:10px;color:var(--text-muted);">Durée</th></tr></thead>'
+          + '<tbody>' + rows + '</tbody></table>';
+        el.appendChild(div);
+      };
+    }
+
+    // 3. Export PDF séance avec bouton téléchargement
+    window.exportSessionPDF = function() {
+      var s = (window.state && window.state.sessions || []).find(function(x) { return x.id === window.modalSessionId; });
+      if (!s) return;
+      var MD = window.MD_DAYS || [];
+      var md = MD.find(function(m) { return m.code === s.md; });
+      var fmtD = window.fmtDate || function(d) { return d; };
+      var exosHtml = (s.exercises || []).map(function(e, i) {
+        var totalSec = _totalExoSec(e);
+        var totalStr = totalSec > 0 ? _fmtSec(totalSec) : (e.duree + 'min');
+        var ratio = e.tempsSerie > 0 && e.recup > 0 ? '1:' + (e.recup / e.tempsSerie).toFixed(1) : '—';
+        var recupStr = e.recup > 0 ? e.recup + 's (' + (e.recupType || '') + ')' : '—';
+        return '<div style="background:#f8fafd;border:1px solid #ddd;border-radius:3mm;padding:4mm;margin-bottom:3mm;">'
+          + '<div style="font-weight:700;color:#1E5DA1;font-size:11pt;margin-bottom:2mm;">' + (i+1) + '. ' + (e.name||e.themeNom)
+          + '<span style="float:right;background:#1E5DA1;color:white;padding:1mm 3mm;border-radius:2mm;font-size:9pt;">RPE ' + e.rpe + ' · ' + e.ua + ' UA</span></div>'
+          + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;font-size:9.5pt;">'
+          + '<div style="background:#eef4fb;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;margin-bottom:1mm;">Séries</div><div style="font-weight:900;font-size:16pt;color:#1E5DA1;">' + e.series + '</div></div>'
+          + '<div style="background:#eef4fb;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;margin-bottom:1mm;">/ Série</div><div style="font-weight:900;font-size:16pt;color:#1E5DA1;">' + (e.tempsSerie > 0 ? e.tempsSerie + 's' : (e.distSerie > 0 ? e.distSerie + 'm' : '—')) + '</div></div>'
+          + '<div style="background:#eef4fb;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;margin-bottom:1mm;">Durée totale</div><div style="font-weight:900;font-size:16pt;color:#1E5DA1;">' + totalStr + '</div></div></div>'
+          + '<div style="display:flex;gap:6mm;font-size:9pt;margin-top:2mm;flex-wrap:wrap;"><span>Ratio T/R : <b>' + ratio + '</b></span><span>Récup : <b>' + recupStr + '</b></span><span>' + e.longueur + 'x' + e.largeur + 'm · <b>' + e.surfaceParJoueur + 'm²/j</b></span><span>' + e.nbJoueurs + ' joueurs</span>' + (e.distanceTotale > 0 ? '<span>' + e.distanceTotale + 'm total</span>' : '') + '</div>'
+          + (e.notes ? '<div style="background:#fff8e7;border-left:3px solid #f4b942;padding:2mm 4mm;font-size:9pt;margin-top:2mm;">' + e.notes + '</div>' : '') + '</div>';
+      }).join('');
+      var tDuree = (s.exercises || []).reduce(function(a, e) { return a + (e.duree || 0); }, 0);
+      var tSer = (s.exercises || []).reduce(function(a, e) { return a + (e.series || 0); }, 0);
+      var dateStr = s.date.replace(/-/g, '');
+      var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Séance ' + fmtD(s.date) + '</title>'
+        + '<style>@page{size:A4;margin:12mm}body{font-family:Helvetica,Arial,sans-serif;color:#0A1929;font-size:10pt;margin:0}@media print{.np{display:none!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}.np{position:fixed;top:10px;right:10px;display:flex;gap:8px;z-index:999}.db{padding:10px 16px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;}</style></head><body>'
+        + '<div class="np"><button class="db" style="background:#1E5DA1;color:white;" onclick="window.print()">🖨 Imprimer / PDF</button><button class="db" style="background:#22c55e;color:white;" onclick="(function(){var b=new Blob([document.documentElement.outerHTML],{type:'text/html'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='seance_' + dateStr + '.html';a.click();setTimeout(function(){URL.revokeObjectURL(u);},2000);})()">⬇️ Télécharger</button></div>'
+        + '<div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:linear-gradient(135deg,#6CACE4,#1E5DA1);color:white;padding:12mm;margin:-12mm -12mm 8mm;">'
+        + '<h1 style="margin:0;font-size:20pt;font-weight:900;">UNION ROCHEFORTOISE</h1>'
+        + '<div style="opacity:.9;font-size:10pt;margin-top:2mm;">Fiche de séance · ' + fmtD(s.date) + '</div>'
+        + '<div style="margin-top:5mm;display:flex;gap:10mm;flex-wrap:wrap;font-size:10pt;">'
+        + '<span>📅 <b>' + s.md + '</b>' + (md ? ' — ' + md.filiere : '') + '</span>'
+        + '<span>⚡ <b>' + s.ua + ' UA</b></span><span>RPE <b>' + s.rpe + '/10</b></span>'
+        + '<span>⏱ <b>' + tDuree + 'min</b></span><span>🔄 <b>' + tSer + ' séries</b></span>'
+        + '<span>👥 <b>' + s.players + ' joueurs</b></span></div></div>'
+        + (s.title ? '<h2 style="color:#1E5DA1;border-bottom:2px solid #6CACE4;padding-bottom:2mm;margin-bottom:6mm;">' + s.title + '</h2>' : '')
+        + exosHtml
+        + (s.notes ? '<div style="background:#f0f7fc;border-left:3px solid #1E5DA1;padding:3mm 5mm;font-size:9.5pt;margin-top:4mm;"><strong>Coaching points :</strong><br>' + s.notes + '</div>' : '')
+        + '<div style="margin-top:10mm;text-align:center;font-size:7.5pt;color:#aaa;">Union Rochefortoise · PrepDB · ' + fmtD(s.date) + '</div>'
+        + '</body></html>';
+      var w = window.open('', '_blank');
+      if (!w) { alert('Autorisez les pop-ups pour générer le PDF.'); return; }
+      w.document.write(html);
+      w.document.close();
+    };
+
+    console.log('PrepDB Patch v3 inline OK');
+  }
+
+  // Exécution immédiate
+  applyPatches();
+  // Retry si les fonctions ne sont pas encore prêtes
+  var retries = 0;
+  var check = setInterval(function() {
+    if (typeof window.renderExercisesList === 'function' &&
+        !window.renderExercisesList.toString().includes('_serieLabel')) {
+      applyPatches();
+    }
+    if (++retries > 10) clearInterval(check);
+  }, 500);
+})();
+</script></body>
 </html>
