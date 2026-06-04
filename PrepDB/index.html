@@ -4780,17 +4780,23 @@ if (state.settings.user) {
     console.log('PrepDB Patch v3 inline OK');
   }
 
-  // Exécution immédiate
-  applyPatches();
-  // Retry si les fonctions ne sont pas encore prêtes
-  var retries = 0;
-  var check = setInterval(function() {
-    if (typeof window.renderExercisesList === 'function' &&
-        !window.renderExercisesList.toString().includes('_serieLabel')) {
-      applyPatches();
-    }
-    if (++retries > 10) clearInterval(check);
-  }, 500);
+  // Patch appliqué après chargement complet (window load) pour éviter que
+  // prepdb_persistance.js écrase les fonctions patchées
+  function runPatch() {
+    applyPatches();
+    // Sécurité : re-vérifier 1s plus tard
+    setTimeout(function() {
+      if (typeof window.renderExercisesList === 'function' &&
+          !window.renderExercisesList.toString().includes('_serieLabel')) {
+        applyPatches();
+      }
+    }, 1000);
+  }
+  if (document.readyState === 'complete') {
+    setTimeout(runPatch, 100);
+  } else {
+    window.addEventListener('load', function() { setTimeout(runPatch, 100); });
+  }
 })();
 </script></body>
 </html>
