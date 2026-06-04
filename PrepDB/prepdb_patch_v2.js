@@ -220,7 +220,7 @@ setTimeout(function patchPDF(){
       +exosHtml
       +(s.notes?'<div style="background:#f0f7fc;border-left:3px solid #1E5DA1;padding:3mm 5mm;font-size:9.5pt;margin-top:4mm;"><strong>Coaching points :</strong><br>'+s.notes+'</div>':'')
       +'<div style="margin-top:10mm;text-align:center;font-size:7.5pt;color:#aaa;">Union Rochefortoise · PrepDB v1 · '+fmtD(s.date)+'</div>'
-      +'<script>function _dl(){const b=new Blob([document.documentElement.outerHTML],{type:\'text\/html;charset=utf-8\'});const u=URL.createObjectURL(b);const a=document.createElement(\'a\');a.href=u;a.download=\'seance_'+s.date.replace(/-\/g,'')+'\'.html\';a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);}<\/script>'
+      +'<script>function _dl(){const b=new Blob([document.documentElement.outerHTML],{type:\'text\/html;charset=utf-8\'});const u=URL.createObjectURL(b);const a=document.createElement(\'a\');a.href=u;a.download=\'seance_'+s.date.replace(/-/g,'')+'\'.html\';a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);}<\/script>'
       +'</body></html>';
     const w=window.open('','_blank');
     if(!w){alert('Autorisez les pop-ups.');return;}
