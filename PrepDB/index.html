@@ -3046,6 +3046,9 @@ function openSessionDetail(id) {
     `).join('')}
     ${s.notes ? `<div class="card-header mt-3" style="margin:14px -20px;">Coaching points</div><div class="info-box">${s.notes}</div>` : ''}
   `;
+  // Mettre à jour le bouton PDF avec l'ID de la séance directement dans onclick
+  const pdfBtn = document.querySelector('#modalSession .modal-footer .btn-primary[onclick*="PDF"]');
+  if (pdfBtn) pdfBtn.setAttribute('onclick', 'exportSessionPDF(' + id + ')');
   document.getElementById('modalSession').classList.add('show');
 }
 
@@ -4714,14 +4717,21 @@ if (state.settings.user) {
     el.appendChild(div);
   }
 
-  // PDF avec bouton téléchargement
-  window.exportSessionPDF = function(){
-    // Lire l'ID depuis le DOM (data-session-id), puis window.modalSessionId en fallback
-    var modalEl=document.getElementById('modalSession');
-    var sid=modalEl&&modalEl.dataset.sessionId ? +modalEl.dataset.sessionId : window.modalSessionId;
+  // PDF avec bouton téléchargement — reçoit l'ID directement en paramètre
+  window.exportSessionPDF = function(id){
     var sessions=window.state&&window.state.sessions||[];
+    // Chercher par id direct, window.modalSessionId ou dataset en fallback
+    var sid=id||window.modalSessionId;
     var s=sessions.find(function(x){return x.id===sid||x.id===+sid||String(x.id)===String(sid);});
-    if(!s){alert('Ouvre d\'abord une séance puis clique PDF.');return;}
+    if(!s){
+      // Dernier recours : session la plus récente ouverte
+      var modalEl=document.getElementById('modalSession');
+      if(modalEl&&modalEl.dataset.sessionId){
+        sid=+modalEl.dataset.sessionId;
+        s=sessions.find(function(x){return x.id===sid||String(x.id)===String(sid);});
+      }
+    }
+    if(!s){alert('Erreur : séance introuvable. Essaie de rouvrir la séance.');return;}
     var MD=window.MD_DAYS||[],md=MD.find(function(m){return m.code===s.md;}),fmtD=window.fmtDate||function(d){return d;};
     var exHtml=(s.exercises||[]).map(function(e,i){
       var t=tot(e),ts=t>0?fmtSec(t):e.duree+'min',ratio=e.tempsSerie>0&&e.recup>0?'1:'+(e.recup/e.tempsSerie).toFixed(1):'—';
