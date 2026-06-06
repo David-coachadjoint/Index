@@ -1656,8 +1656,8 @@ h1.page-title {
         </div>
         <div class="field"><label>Nb séries</label><input type="number" id="exSeries" value="4" min="1"></div>
         <div class="field"><label>Distance / série (m)</label><input type="number" id="exDistSerie" value="0" min="0"></div>
-        <div class="field"><label>Temps / série (sec)</label><input type="number" id="exTempsSerie" value="0" min="0" placeholder="0 = saisie manuelle"></div>
-        <div class="field"><label>Récup (sec)</label><input type="number" id="exRecup" value="60" min="0"></div>
+        <div class="field"><label>Temps / série (min)</label><input type="number" id="exTempsSerie" value="0" min="0" step="0.5" placeholder="0 = saisie manuelle"></div>
+        <div class="field"><label>Récup (min)</label><input type="number" id="exRecup" value="1" min="0" step="0.5"></div>
         <div class="field">
           <label>Type récup</label>
           <select id="exRecupType">
@@ -2686,8 +2686,13 @@ function openExerciseModal(ex) {
   document.getElementById('exDuree').value = ex.duree || 15;
   document.getElementById('exSeries').value = ex.series || 4;
   document.getElementById('exDistSerie').value = ex.distSerie || 0;
-  document.getElementById('exTempsSerie').value = ex.tempsSerie || 0;
-  document.getElementById('exRecup').value = ex.recup || 60;
+  // Migration : ancien stockage en secondes → convertit en minutes
+  let _ts = ex.tempsSerie || 0;
+  let _rc = ex.recup || 0;
+  if (ex._timeUnit !== 'min' && _ts > 20) _ts = Math.round(_ts / 60 * 10) / 10;
+  if (ex._timeUnit !== 'min' && _rc > 20) _rc = Math.round(_rc / 60 * 10) / 10;
+  document.getElementById('exTempsSerie').value = _ts;
+  document.getElementById('exRecup').value = _rc || 1;
   document.getElementById('exRecupType').value = ex.recupType || 'passive';
   document.getElementById('exNbJoueurs').value = ex.nbJoueurs || currentSession.players;
   document.getElementById('exLong').value = ex.longueur || 40;
@@ -2748,30 +2753,28 @@ function updateExComputed() {
   const series = +document.getElementById('exSeries').value || 0;
   const distSerie = +document.getElementById('exDistSerie').value || 0;
   const distTot = distSerie * series;
-  const ts = +document.getElementById('exTempsSerie').value || 0; // sec
-  const recup = +document.getElementById('exRecup').value || 0;   // sec
+  const ts = +document.getElementById('exTempsSerie').value || 0; // MIN
+  const recup = +document.getElementById('exRecup').value || 0;   // MIN
   const rpe = +document.getElementById('exRPE').value || 0;
 
   // ============ CALCUL AUTO DURÉE ============
   // Si temps/série renseigné → calcul automatique incluant récups entre séries
-  // Formule : (ts × séries) + (récup × (séries - 1))
+  // Formule : (ts × séries) + (récup × (séries - 1))  — en MINUTES
   const dureeInput = document.getElementById('exDuree');
   const dureeAutoDiv = document.getElementById('dureeAutoInfo');
   let dureeMin = 0;
-  let dureeTravailSec = 0;
-  let dureeTotaleSec = 0;
+  let dureeTravailMin = 0;
   let autoMode = false;
 
   if (ts > 0 && series > 0) {
     autoMode = true;
-    dureeTravailSec = ts * series;
-    dureeTotaleSec = (ts * series) + (recup * (series - 1));
-    dureeMin = Math.round(dureeTotaleSec / 60 * 10) / 10; // arrondi 0.1 min
+    dureeTravailMin = Math.round(ts * series * 10) / 10;
+    dureeMin = Math.round(((ts * series) + (recup * (series - 1))) * 10) / 10;
     // Mettre à jour le champ durée auto
     dureeInput.value = dureeMin;
     dureeInput.style.opacity = '0.6';
     dureeInput.readOnly = true;
-    dureeInput.title = `Calculé auto : (${ts}s × ${series}) + (${recup}s × ${series-1}) = ${dureeTotaleSec}s`;
+    dureeInput.title = `Calculé auto : (${ts}min × ${series}) + (${recup}min × ${series-1}) = ${dureeMin}min`;
     if (dureeAutoDiv) dureeAutoDiv.style.display = 'block';
   } else {
     // Mode manuel : le staff saisit la durée
@@ -2784,12 +2787,11 @@ function updateExComputed() {
   const duree = autoMode ? dureeMin : (+dureeInput.value || 0);
 
   // ============ CALCULS ============
-  const ratio = ts > 0 ? `1:${(recup/ts).toFixed(1)}` : '—';
+  const ratio = ts > 0 && recup > 0 ? `1:${(recup/ts).toFixed(1)}` : '—';
   const ua = uaCalc(rpe, duree);
 
   // UA sur travail pur (sans récups) — pour info
-  const dureeTravailMin = dureeTravailSec > 0 ? Math.round(dureeTravailSec / 60 * 10) / 10 : duree;
-  const uaTravailPur = uaCalc(rpe, dureeTravailMin);
+  const uaTravailPur = uaCalc(rpe, dureeTravailMin > 0 ? dureeTravailMin : duree);
 
   // ============ AFFICHAGE COMPUTED ============
   const m2Class = m2j < 30 || m2j > 250 ? 'warn' : 'success';
@@ -2805,17 +2807,17 @@ function updateExComputed() {
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px;">
           <div style="text-align:center;">
             <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Travail pur</div>
-            <div style="font-weight:700;color:var(--text-dim);font-size:14px;">${Math.floor(dureeTravailSec/60)}min${dureeTravailSec%60>0?dureeTravailSec%60+'s':''}</div>
+            <div style="font-weight:700;color:var(--text-dim);font-size:14px;">${series} × ${ts} min = ${dureeTravailMin.toFixed(1)} min</div>
           </div>
           <div style="color:var(--text-muted);padding-top:14px;">+</div>
           <div style="text-align:center;">
             <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Récups</div>
-            <div style="font-weight:700;color:var(--text-dim);font-size:14px;">${Math.floor(recup*(series-1)/60)}min${(recup*(series-1))%60>0?(recup*(series-1))%60+'s':''}</div>
+            <div style="font-weight:700;color:var(--text-dim);font-size:14px;">${series-1} × ${recup} min = ${(recup*(series-1)).toFixed(1)} min</div>
           </div>
           <div style="color:var(--text-muted);padding-top:14px;">=</div>
           <div style="text-align:center;">
             <div style="font-size:9px;color:var(--primary);text-transform:uppercase;font-weight:700;">Total bloc</div>
-            <div style="font-weight:800;color:var(--primary);font-size:16px;">${Math.floor(dureeTotaleSec/60)}min${dureeTotaleSec%60>0?dureeTotaleSec%60+'s':''}</div>
+            <div style="font-weight:800;color:var(--primary);font-size:16px;">${dureeMin.toFixed(1)} min</div>
           </div>
         </div>
       </div>
@@ -2852,15 +2854,13 @@ function saveExercise() {
   const recup = +document.getElementById('exRecup').value || 0;
   const rpe = +document.getElementById('exRPE').value || 7;
 
-  // Calcul de la durée : auto si temps/série renseigné, sinon manuel
+  // Calcul de la durée : auto si temps/série renseigné, sinon manuel — en MINUTES
   let duree = +document.getElementById('exDuree').value || 0;
-  let dureeTravailSec = 0;
-  let dureeTotaleSec = 0;
+  let dureeTravailMin = 0;
   let dureeAutoCalc = false;
   if (ts > 0 && series > 0) {
-    dureeTravailSec = ts * series;
-    dureeTotaleSec = (ts * series) + (recup * (series - 1));
-    duree = Math.round(dureeTotaleSec / 60 * 10) / 10;
+    dureeTravailMin = Math.round(ts * series * 10) / 10;
+    duree = Math.round(((ts * series) + (recup * (series - 1))) * 10) / 10;
     dureeAutoCalc = true;
   }
 
@@ -2868,14 +2868,15 @@ function saveExercise() {
     name: document.getElementById('exName').value.trim(),
     themeId,
     themeNom: theme?.nom || '—',
-    duree,                                    // durée totale (travail + récups)
-    dureeTravailMin: dureeAutoCalc ? Math.round(dureeTravailSec/60*10)/10 : duree,
-    dureeTotaleSec: dureeTotaleSec || duree*60,
+    duree,                                    // durée totale en minutes (travail + récups)
+    dureeTravailMin: dureeAutoCalc ? dureeTravailMin : duree,
+    dureeTotaleSec: Math.round(duree * 60),
     dureeAutoCalc,
     series,
     distSerie,
-    tempsSerie: ts,
-    recup,
+    tempsSerie: ts,   // stocké en MINUTES
+    recup,             // stocké en MINUTES
+    _timeUnit: 'min',
     recupType: document.getElementById('exRecupType').value,
     nbJoueurs: nb,
     longueur: long,
@@ -3004,6 +3005,7 @@ function openSessionDetail(id) {
   const s = state.sessions.find(x => x.id === id);
   if (!s) return;
   modalSessionId = id;
+  window.modalSessionId = id;
   const md = MD_DAYS.find(m => m.code === s.md);
   document.getElementById('modalSessionTitle').textContent = `${fmtDate(s.date)} · ${s.md}`;
   document.getElementById('modalSessionBody').innerHTML = `
@@ -4722,10 +4724,12 @@ if (state.settings.user) {
         +'<span style="float:right;background:#1E5DA1;color:#fff;padding:1mm 3mm;border-radius:2mm;font-size:9pt;">RPE '+e.rpe+' · '+e.ua+' UA</span></div>'
         +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;">'
         +'<div style="background:#eef4fb;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;">Séries</div><div style="font-weight:900;font-size:16pt;color:#1E5DA1;">'+e.series+'</div></div>'
-        +'<div style="background:#eef4fb;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;">/ Série</div><div style="font-weight:900;font-size:16pt;color:#1E5DA1;">'+(e.tempsSerie>0?e.tempsSerie+'s':(e.distSerie>0?e.distSerie+'m':'—'))+'</div></div>'
-        +'<div style="background:#eef4fb;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;">Durée totale</div><div style="font-weight:900;font-size:16pt;color:#1E5DA1;">'+ts+'</div></div></div>'
+        +'<div style="background:#eef4fb;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;">Durée / série</div><div style="font-weight:900;font-size:16pt;color:#1E5DA1;">'+(e.tempsSerie>0?(e._timeUnit==='min'?e.tempsSerie+'min':Math.round(e.tempsSerie/60*10)/10+'min'):(e.distSerie>0?e.distSerie+'m':'—'))+'</div></div>'
+        +'<div style="background:#dff0e8;padding:2.5mm;border-radius:2mm;text-align:center;"><div style="font-size:8pt;color:#666;text-transform:uppercase;">Durée totale</div><div style="font-weight:900;font-size:16pt;color:#155724;">'+ts+'</div></div></div>'
+        +'<div style="background:#dff0e8;border:1px solid #c3e6cb;border-radius:2mm;padding:2mm 3mm;margin-top:2mm;text-align:center;font-size:10pt;font-weight:700;color:#155724;">'
+        +'🔁 '+e.series+' × '+(e.tempsSerie>0?(e._timeUnit==='min'?e.tempsSerie+'min':Math.round(e.tempsSerie/60*10)/10+'min'):(e.distSerie>0?e.distSerie+'m':'—'))+' = '+ts+'</div>'
         +'<div style="font-size:9pt;margin-top:2mm;display:flex;gap:8mm;flex-wrap:wrap;">'
-        +'<span>Récup : <b>'+(e.recup>0?e.recup+'s':'—')+'</b></span><span>Ratio T/R : <b>'+ratio+'</b></span>'
+        +'<span>Récup : <b>'+(e.recup>0?(e._timeUnit==='min'?e.recup+'min':Math.round(e.recup/60*10)/10+'min'):'—')+'</b></span><span>Ratio T/R : <b>'+ratio+'</b></span>'
         +'<span>'+e.longueur+'x'+e.largeur+'m · <b>'+e.surfaceParJoueur+' m²/j</b></span><span><b>'+e.nbJoueurs+'</b> joueurs</span></div>'
         +(e.notes?'<div style="background:#fff8e7;border-left:3px solid #f4b942;padding:2mm 4mm;font-size:9pt;margin-top:2mm;">'+e.notes+'</div>':'')
         +'</div>';
