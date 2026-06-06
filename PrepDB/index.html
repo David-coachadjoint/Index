@@ -3006,6 +3006,8 @@ function openSessionDetail(id) {
   if (!s) return;
   modalSessionId = id;
   window.modalSessionId = id;
+  // Stocker l'ID dans le DOM pour que l'IIFE du patch puisse le lire
+  document.getElementById('modalSession').dataset.sessionId = id;
   const md = MD_DAYS.find(m => m.code === s.md);
   document.getElementById('modalSessionTitle').textContent = `${fmtDate(s.date)} · ${s.md}`;
   document.getElementById('modalSessionBody').innerHTML = `
@@ -4714,8 +4716,12 @@ if (state.settings.user) {
 
   // PDF avec bouton téléchargement
   window.exportSessionPDF = function(){
-    var s=(window.state&&window.state.sessions||[]).find(function(x){return x.id===window.modalSessionId;});
-    if(!s){alert('Aucune séance.');return;}
+    // Lire l'ID depuis le DOM (data-session-id), puis window.modalSessionId en fallback
+    var modalEl=document.getElementById('modalSession');
+    var sid=modalEl&&modalEl.dataset.sessionId ? +modalEl.dataset.sessionId : window.modalSessionId;
+    var sessions=window.state&&window.state.sessions||[];
+    var s=sessions.find(function(x){return x.id===sid||x.id===+sid||String(x.id)===String(sid);});
+    if(!s){alert('Ouvre d\'abord une séance puis clique PDF.');return;}
     var MD=window.MD_DAYS||[],md=MD.find(function(m){return m.code===s.md;}),fmtD=window.fmtDate||function(d){return d;};
     var exHtml=(s.exercises||[]).map(function(e,i){
       var t=tot(e),ts=t>0?fmtSec(t):e.duree+'min',ratio=e.tempsSerie>0&&e.recup>0?'1:'+(e.recup/e.tempsSerie).toFixed(1):'—';
