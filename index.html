@@ -479,7 +479,7 @@ body.pdf-mode>:not(#pdf-overlay):not(#toast){display:none !important}
       <div class="mstats">
         <div class="sbox"><div class="snum" id="mn">0/11</div><div class="slbl">Titulaires</div></div>
         <div class="sbox" style="border-left-color:#68d391"><div class="snum" style="color:#68d391" id="movr">—</div><div class="slbl">OVR moyen</div></div>
-        <div class="sbox" style="border-left-color:#f6c90e"><div class="snum" style="color:#f6c90e" id="mrep">0/7</div><div class="slbl">Remplaçants</div></div>
+        <div class="sbox" style="border-left-color:#f6c90e"><div class="snum" style="color:#f6c90e" id="mrep">0/11</div><div class="slbl">Remplaçants</div></div>
       </div>
     </div>
 
@@ -490,7 +490,7 @@ body.pdf-mode>:not(#pdf-overlay):not(#toast){display:none !important}
     </div>
 
     <div class="sec"><div class="stit" id="mtit-label">⚽ Titulaires (4-3-3)</div><div class="tgrid" id="mtit"></div></div>
-    <div class="sec"><div class="stit">🔄 Remplaçants (7)</div><div class="rgrid" id="mrmp"></div></div>
+    <div class="sec"><div class="stit">🔄 Remplaçants (11)</div><div class="rgrid" id="mrmp"></div></div>
 
     <!-- BUTEURS & STATS -->
     <div class="sec"><div class="stit">⚽ Buteurs & Passes décisives</div>
@@ -868,7 +868,7 @@ let CU=null,editId=null,posF='',selComps=[],curObjs=[];
 let rcSelComps=[];
 let CFG={bin:'',key:''};
 const KS='ur9_s',KD='ur9_d',KC='ur9_c';
-let curMatch={tit:{},rmp:[null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[]};
+let curMatch={tit:{},rmp:[null,null,null,null,null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[]};
 let curMatchId=null;
 let chTgt=null;
 let currentRcCmpId=null;
@@ -1224,7 +1224,7 @@ function renderMatch(){
   re.innerHTML=curMatch.rmp.map((pid,i)=>{const pl=pid?players.find(p=>p.id===pid):null;return'<div class="cslot '+(pl?'filled':'')+'" onclick="openCh(\'rep\','+i+')"><div class="cpos">R'+(i+1)+'</div><div class="cname '+(pl?'':'cempty')+'">'+(pl?pl.prenom+' '+pl.nom:'Choisir')+'</div>'+(pl?'<div class="covr" style="color:'+oC(ovr(pl))+'">'+ovr(pl)+'</div><button class="crem" onclick="event.stopPropagation();remCh(\'rep\','+i+')">✕</button>':'')+'</div>';}).join('');
   const tids=Object.values(curMatch.tit).filter(Boolean),tpls=tids.map(id=>players.find(p=>p.id===id)).filter(Boolean),rids=curMatch.rmp.filter(Boolean);
   document.getElementById('mn').textContent=tids.length+'/'+MPOS.length;
-  document.getElementById('mrep').textContent=rids.length+'/7';
+  document.getElementById('mrep').textContent=rids.length+'/11';
   document.getElementById('movr').textContent=tpls.length?(tpls.reduce((a,p)=>a+ovr(p),0)/tpls.length).toFixed(0):'—';
   // Refresh goals/subs selects
   refreshMatchSelects();
@@ -2126,7 +2126,7 @@ function renderChoose(){
 }
 function pickPl(id){if(!chTgt)return;if(chTgt.type==='tit')curMatch.tit[chTgt.key]=id;else curMatch.rmp[chTgt.key]=id;closeMod('m-ch');renderMatch();}
 function remCh(type,key){if(type==='tit')delete curMatch.tit[key];else curMatch.rmp[key]=null;renderMatch();}
-function resetMatch(){if(!confirm('Réinitialiser ?'))return;curMatch={tit:{},rmp:[null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[]};curMatchId=null;['mdate','madv','msu','msa','mcomp'].forEach(id=>document.getElementById(id).value='');document.getElementById('mlieu').value='';document.getElementById('madvlbl').textContent='Adv.';document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.remove('sel'));document.querySelectorAll('.form-btn').forEach(b=>b.classList.remove('sel'));document.querySelector('.form-btn').classList.add('sel');renderMatch();}
+function resetMatch(){if(!confirm('Réinitialiser ?'))return;curMatch={tit:{},rmp:[null,null,null,null,null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[]};curMatchId=null;['mdate','madv','msu','msa','mcomp'].forEach(id=>document.getElementById(id).value='');document.getElementById('mlieu').value='';document.getElementById('madvlbl').textContent='Adv.';document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.remove('sel'));document.querySelectorAll('.form-btn').forEach(b=>b.classList.remove('sel'));document.querySelector('.form-btn').classList.add('sel');renderMatch();}
 async function saveMatch(){
   const date=document.getElementById('mdate').value,adv=document.getElementById('madv').value.trim();
   if(!date){toast('⚠ Date requise');return;}
@@ -2148,7 +2148,7 @@ function loadMatch(id){
   const m=matchs.find(x=>x.id===id);if(!m)return;
   if(!confirm('Charger "'+(m.adv?'vs '+m.adv:'ce match')+'" ?'))return;
   // Restaurer curMatch complet
-  curMatch.tit={...(m.tit||{})};curMatch.rmp=[...(m.rmp||[null,null,null,null,null,null,null])];while(curMatch.rmp.length<7)curMatch.rmp.push(null);
+  curMatch.tit={...(m.tit||{})};curMatch.rmp=[...(m.rmp||[null,null,null,null,null,null,null,null,null,null,null])];while(curMatch.rmp.length<11)curMatch.rmp.push(null);
   curMatch.formation=m.formation||'4-3-3';curMatch.surface=m.surface||'';curMatch.format=m.format||'';curMatch.taille=m.taille||'';curMatch.goals=[...(m.goals||[])];curMatch.subs=[...(m.subs||[])];
   curMatch.advFormation=m.advFormation||'';curMatch.advJoueurs=m.advJoueurs?JSON.parse(JSON.stringify(m.advJoueurs)):{};
   curMatchId=id;
