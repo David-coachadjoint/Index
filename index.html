@@ -519,6 +519,20 @@ body.pdf-mode>:not(#pdf-overlay):not(#toast){display:none !important}
       </div>
     </div>
 
+    <!-- CARTONS -->
+    <div class="sec"><div class="stit">🟨🟥 Cartons</div>
+      <div style="font-size:11px;color:#718096;margin-bottom:9px">Notez chaque carton avec sa minute. Un 2e carton jaune pour le même joueur est automatiquement transformé en exclusion.</div>
+      <div id="card-list"></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+        <select class="fs" id="cnew-team" style="flex:0 0 100px" onchange="toggleCardTeam()"><option value="UR">⚽ UR</option><option value="Adv">🔴 Adv.</option></select>
+        <select class="fs" id="cnew-player" style="flex:1;min-width:130px"><option value="">Joueur…</option></select>
+        <input type="text" class="fi" id="cnew-adv-name" placeholder="Nom joueur adverse…" style="flex:1;min-width:130px;display:none">
+        <input type="number" min="1" max="120" class="fi" id="cnew-min" placeholder="Min." style="width:70px">
+        <select class="fs" id="cnew-type" style="flex:0 0 110px"><option value="jaune">🟨 Jaune</option><option value="rouge">🟥 Rouge direct</option></select>
+        <button class="btn btn-o btn-sm" onclick="addCard()">+ Carton</button>
+      </div>
+    </div>
+
     <!-- RAPPORT QUART HEURE -->
     <div class="sec"><div class="stit">📈 Rapport buts par quart d'heure</div>
       <div id="qh-report"><div style="color:#718096;font-size:12px">Enregistrez des buts pour afficher le rapport.</div></div>
@@ -868,7 +882,7 @@ let CU=null,editId=null,posF='',selComps=[],curObjs=[];
 let rcSelComps=[];
 let CFG={bin:'',key:''};
 const KS='ur9_s',KD='ur9_d',KC='ur9_c';
-let curMatch={tit:{},rmp:[null,null,null,null,null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[]};
+let curMatch={tit:{},rmp:[null,null,null,null,null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[],cards:[]};
 let curMatchId=null;
 let chTgt=null;
 let currentRcCmpId=null;
@@ -1228,7 +1242,7 @@ function renderMatch(){
   document.getElementById('movr').textContent=tpls.length?(tpls.reduce((a,p)=>a+ovr(p),0)/tpls.length).toFixed(0):'—';
   // Refresh goals/subs selects
   refreshMatchSelects();
-  renderGoals();renderSubs();renderQH();
+  renderGoals();renderSubs();renderCards();renderQH();
   renderCompoReport();
   // Bilan
   const mb=document.getElementById('mbilan');
@@ -1250,7 +1264,17 @@ function renderMatch(){
 function refreshMatchSelects(){
   const allPl=getAllMatchPlayers();
   const opts='<option value="">—</option>'+allPl.map(p=>'<option value="'+p.id+'">'+p.prenom+' '+p.nom+'</option>').join('');
-  ['gnew-player','gnew-assist','snew-out','snew-in'].forEach(id=>{const e=document.getElementById(id);if(e){const v=e.value;e.innerHTML=opts;e.value=v;}});
+  ['gnew-player','gnew-assist','cnew-player'].forEach(id=>{const e=document.getElementById(id);if(e){const v=e.value;e.innerHTML=opts;e.value=v;}});
+  // Remplacements : "sort" = titulaires uniquement, "entre" = remplaçants uniquement
+  const titIds=Object.values(curMatch.tit).filter(Boolean);
+  const titPl=titIds.map(id=>players.find(p=>p.id===id)).filter(Boolean);
+  const optsTit='<option value="">Joueur sort…</option>'+titPl.map(p=>'<option value="'+p.id+'">'+p.prenom+' '+p.nom+'</option>').join('');
+  const eOut=document.getElementById('snew-out');if(eOut){const v=eOut.value;eOut.innerHTML=optsTit;eOut.value=v;}
+  const rmpIds=curMatch.rmp.filter(Boolean);
+  const rmpPl=rmpIds.map(id=>players.find(p=>p.id===id)).filter(Boolean);
+  const optsRmp='<option value="">Joueur entre…</option>'+rmpPl.map(p=>'<option value="'+p.id+'">'+p.prenom+' '+p.nom+'</option>').join('');
+  const eIn=document.getElementById('snew-in');if(eIn){const v=eIn.value;eIn.innerHTML=optsRmp;eIn.value=v;}
+  toggleCardTeam();
 }
 
 function getAllMatchPlayers(){
@@ -1318,6 +1342,57 @@ function renderSubs(){
       '<span class="sub-pill">'+s.min+"'</span>"+
       (impact?'<span style="font-size:10px;color:#718096">'+impact+'</span>':'')+
       '<button class="btn btn-d btn-sm" onclick="removeSub('+i+')">✕</button></div>';
+  }).join('');
+}
+
+// ═══════ CARTONS ═══════
+function toggleCardTeam(){
+  const team=document.getElementById('cnew-team').value;
+  const selP=document.getElementById('cnew-player'),inpA=document.getElementById('cnew-adv-name');
+  if(!selP||!inpA)return;
+  selP.style.display=team==='UR'?'':'none';
+  inpA.style.display=team==='Adv'?'':'none';
+}
+function addCard(){
+  const team=document.getElementById('cnew-team').value;
+  const pid=document.getElementById('cnew-player').value;
+  const advName=document.getElementById('cnew-adv-name').value.trim();
+  const min=parseInt(document.getElementById('cnew-min').value)||0;
+  const type=document.getElementById('cnew-type').value;
+  if(team==='UR'&&!pid){toast('⚠ Sélectionnez le joueur');return;}
+  if(team==='Adv'&&!advName){toast('⚠ Indiquez le nom du joueur adverse');return;}
+  if(!min){toast('⚠ Indiquez la minute');return;}
+  if(!curMatch.cards)curMatch.cards=[];
+  const key=team==='UR'?('p_'+pid):('a_'+advName.toLowerCase());
+  let finalType=type;
+  if(type==='jaune'){
+    const priorYellows=curMatch.cards.filter(c=>c.key===key&&(c.type==='jaune')).length;
+    if(priorYellows>=1)finalType='jaune2';
+  }
+  curMatch.cards.push({id:'c_'+Date.now(),team,pid:pid||'',advName:advName||'',key,min,type:finalType});
+  document.getElementById('cnew-min').value='';
+  if(finalType==='jaune2')toast('🟨🟨 Deuxième jaune — Exclusion !');
+  else if(finalType==='rouge')toast('🟥 Carton rouge enregistré');
+  else toast('🟨 Carton jaune enregistré');
+  renderCards();
+}
+function removeCard(idx){curMatch.cards.splice(idx,1);renderCards();}
+function renderCards(){
+  const el=document.getElementById('card-list');if(!el)return;
+  if(!curMatch.cards||!curMatch.cards.length){el.innerHTML='<div style="color:#718096;font-size:12px;padding:5px 0">Aucun carton.</div>';return;}
+  el.innerHTML=[...curMatch.cards].sort((a,b)=>a.min-b.min).map((c,i)=>{
+    const player=c.team==='UR'&&c.pid?players.find(p=>p.id===c.pid):null;
+    const name=player?(player.prenom+' '+player.nom):(c.advName||'?');
+    const teamCol=c.team==='UR'?'#63b3ed':'#fc8181';
+    let icon='🟨',label='Jaune';
+    if(c.type==='rouge'){icon='🟥';label='Rouge direct';}
+    else if(c.type==='jaune2'){icon='🟨🟥';label='2e jaune — Exclusion';}
+    return'<div class="goal-row"><span style="font-size:16px">'+icon+'</span>'+
+      '<span style="font-size:12px;font-weight:700;color:'+teamCol+'">'+c.team+'</span>'+
+      '<span style="font-size:13px;flex:1">'+name+'</span>'+
+      '<span style="font-size:10px;color:#718096">'+label+'</span>'+
+      '<span class="sub-pill">'+c.min+"'</span>"+
+      '<button class="btn btn-d btn-sm" onclick="removeCard('+i+')">✕</button></div>';
   }).join('');
 }
 
@@ -2126,13 +2201,13 @@ function renderChoose(){
 }
 function pickPl(id){if(!chTgt)return;if(chTgt.type==='tit')curMatch.tit[chTgt.key]=id;else curMatch.rmp[chTgt.key]=id;closeMod('m-ch');renderMatch();}
 function remCh(type,key){if(type==='tit')delete curMatch.tit[key];else curMatch.rmp[key]=null;renderMatch();}
-function resetMatch(){if(!confirm('Réinitialiser ?'))return;curMatch={tit:{},rmp:[null,null,null,null,null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[]};curMatchId=null;['mdate','madv','msu','msa','mcomp'].forEach(id=>document.getElementById(id).value='');document.getElementById('mlieu').value='';document.getElementById('madvlbl').textContent='Adv.';document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.remove('sel'));document.querySelectorAll('.form-btn').forEach(b=>b.classList.remove('sel'));document.querySelector('.form-btn').classList.add('sel');renderMatch();}
+function resetMatch(){if(!confirm('Réinitialiser ?'))return;curMatch={tit:{},rmp:[null,null,null,null,null,null,null,null,null,null,null],formation:'4-3-3',surface:'',format:'',taille:'',goals:[],subs:[],cards:[]};curMatchId=null;['mdate','madv','msu','msa','mcomp'].forEach(id=>document.getElementById(id).value='');document.getElementById('mlieu').value='';document.getElementById('madvlbl').textContent='Adv.';document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.remove('sel'));document.querySelectorAll('.form-btn').forEach(b=>b.classList.remove('sel'));document.querySelector('.form-btn').classList.add('sel');renderMatch();}
 async function saveMatch(){
   const date=document.getElementById('mdate').value,adv=document.getElementById('madv').value.trim();
   if(!date){toast('⚠ Date requise');return;}
   if(!Object.values(curMatch.tit).filter(Boolean).length){toast('⚠ Sélectionnez au moins un titulaire');return;}
   const su=document.getElementById('msu').value,sa=document.getElementById('msa').value;
-  const mObj={date,adv,lieu:document.getElementById('mlieu').value,competition:document.getElementById('mcomp').value,compType:document.getElementById('mcomptype').value||'championnat',formation:curMatch.formation||'4-3-3',surface:curMatch.surface||'',format:curMatch.format||'',taille:curMatch.taille||'',scoreUR:su!==''?parseInt(su):null,scoreAdv:sa!==''?parseInt(sa):null,tit:{...curMatch.tit},rmp:[...curMatch.rmp],goals:[...(curMatch.goals||[])],subs:[...(curMatch.subs||[])],advFormation:curMatch.advFormation||'',advJoueurs:curMatch.advJoueurs?JSON.parse(JSON.stringify(curMatch.advJoueurs)):{},by:CU?CU.name:'?',updatedAt:new Date().toISOString()};
+  const mObj={date,adv,lieu:document.getElementById('mlieu').value,competition:document.getElementById('mcomp').value,compType:document.getElementById('mcomptype').value||'championnat',formation:curMatch.formation||'4-3-3',surface:curMatch.surface||'',format:curMatch.format||'',taille:curMatch.taille||'',scoreUR:su!==''?parseInt(su):null,scoreAdv:sa!==''?parseInt(sa):null,tit:{...curMatch.tit},rmp:[...curMatch.rmp],goals:[...(curMatch.goals||[])],subs:[...(curMatch.subs||[])],cards:[...(curMatch.cards||[])],advFormation:curMatch.advFormation||'',advJoueurs:curMatch.advJoueurs?JSON.parse(JSON.stringify(curMatch.advJoueurs)):{},by:CU?CU.name:'?',updatedAt:new Date().toISOString()};
   if(curMatchId){
     const idx=matchs.findIndex(x=>x.id===curMatchId);
     if(idx>=0){matchs[idx]={...matchs[idx],...mObj};toast('✓ Match mis à jour');}
@@ -2149,7 +2224,7 @@ function loadMatch(id){
   if(!confirm('Charger "'+(m.adv?'vs '+m.adv:'ce match')+'" ?'))return;
   // Restaurer curMatch complet
   curMatch.tit={...(m.tit||{})};curMatch.rmp=[...(m.rmp||[null,null,null,null,null,null,null,null,null,null,null])];while(curMatch.rmp.length<11)curMatch.rmp.push(null);
-  curMatch.formation=m.formation||'4-3-3';curMatch.surface=m.surface||'';curMatch.format=m.format||'';curMatch.taille=m.taille||'';curMatch.goals=[...(m.goals||[])];curMatch.subs=[...(m.subs||[])];
+  curMatch.formation=m.formation||'4-3-3';curMatch.surface=m.surface||'';curMatch.format=m.format||'';curMatch.taille=m.taille||'';curMatch.goals=[...(m.goals||[])];curMatch.subs=[...(m.subs||[])];curMatch.cards=[...(m.cards||[])];
   curMatch.advFormation=m.advFormation||'';curMatch.advJoueurs=m.advJoueurs?JSON.parse(JSON.stringify(m.advJoueurs)):{};
   curMatchId=id;
   // Champs texte
