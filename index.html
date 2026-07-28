@@ -2195,109 +2195,348 @@ function exportDataPDF(){
   const ms=getFilteredMatchs();
   if(!ms.length){toast('⚠ Aucune donnée à exporter');return;}
   const filterLbl={all:'Tous',championnat:'🏆 Championnat',coupe:'🥇 Coupe',amical:'🤝 Amical'}[dataFilter]||'Tous';
-  const w=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR>m.scoreAdv).length;
-  const dr=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR===m.scoreAdv).length;
-  const l=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR<m.scoreAdv).length;
-  const bg=ms.reduce((a,m)=>a+(m.scoreUR||0),0);
-  const bc=ms.reduce((a,m)=>a+(m.scoreAdv||0),0);
-  const cleansheets=ms.filter(m=>m.scoreAdv===0).length;
-  const points=w*3+dr;
-  const ppmVal=ms.length?(points/ms.length).toFixed(2):'0';
+  const scoredMs=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null);
+  const res=m=>m.scoreUR>m.scoreAdv?'w':m.scoreUR===m.scoreAdv?'d':'l';
+  const statBox=arr=>{
+    const w=arr.filter(m=>res(m)==='w').length,d=arr.filter(m=>res(m)==='d').length,l=arr.filter(m=>res(m)==='l').length;
+    const pts2=w*3+d;const ppmV=arr.length?(pts2/arr.length).toFixed(2):'0';const winPctV=arr.length?Math.round(w/arr.length*100):0;
+    return{w,d,l,ppm:ppmV,winPct:winPctV};
+  };
   let body='';
-  // Bilan
-  body+='<div class="pdf-sec"><h3>📋 Bilan — '+filterLbl+'</h3>';
-  body+='<div class="pdf-g3">';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:#16a34a">'+w+'</div><div class="pdf-l">Victoires</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:#d97706">'+dr+'</div><div class="pdf-l">Nuls</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:#dc2626">'+l+'</div><div class="pdf-l">Défaites</div></div>';
-  body+='</div><div class="pdf-g3">';
-  body+='<div class="pdf-st"><div class="pdf-n">'+points+'</div><div class="pdf-l">Points</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n">'+ppmVal+'</div><div class="pdf-l">Pts / match</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n">'+ms.length+'</div><div class="pdf-l">Matchs</div></div>';
-  body+='</div></div>';
-  // Buts
-  const diff=bg-bc;
-  body+='<div class="pdf-sec"><h3>⚽ Buts</h3><div class="pdf-g3">';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:#16a34a">'+bg+'</div><div class="pdf-l">Marqués</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:#dc2626">'+bc+'</div><div class="pdf-l">Encaissés</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:'+(diff>=0?'#16a34a':'#dc2626')+'">'+(diff>=0?'+':'')+diff+'</div><div class="pdf-l">Différence</div></div>';
-  body+='</div><div class="pdf-g3">';
-  body+='<div class="pdf-st"><div class="pdf-n">'+(ms.length?(bg/ms.length).toFixed(1):'0')+'</div><div class="pdf-l">Buts / match</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n">'+cleansheets+'</div><div class="pdf-l">Clean sheets</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n">'+(ms.length?Math.round(cleansheets/ms.length*100):0)+'%</div><div class="pdf-l">% Clean sheets</div></div>';
-  body+='</div></div>';
-  // Buteurs & passeurs
-  const scorers={},assisters={};
-  ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.team==='UR'&&g.pid)scorers[g.pid]=(scorers[g.pid]||0)+1;if(g.assist)assisters[g.assist]=(assisters[g.assist]||0)+1;});});
-  const scList=Object.entries(scorers).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const asList=Object.entries(assisters).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  if(scList.length||asList.length){
-    body+='<div class="pdf-sec"><h3>🏆 Top buteurs & passeurs</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">⚽ Buteurs</td><td style="font-weight:700;color:#64748b">🅰 Passeurs</td></tr>';
-    const maxRows=Math.max(scList.length,asList.length,1);
-    for(let i=0;i<maxRows;i++){
-      const sc=scList[i],as=asList[i];
-      const scP=sc?players.find(p=>p.id===sc[0]):null;
-      const asP=as?players.find(p=>p.id===as[0]):null;
-      body+='<tr><td>'+(scP?scP.prenom+' '+scP.nom+' — <b>'+sc[1]+'</b>':'—')+'</td><td>'+(asP?asP.prenom+' '+asP.nom+' — <b>'+as[1]+'</b>':'—')+'</td></tr>';
+
+  // ── 1. BILAN ──────────────────────────────────────────────
+  {
+    const w=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR>m.scoreAdv).length;
+    const dr=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR===m.scoreAdv).length;
+    const l=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR<m.scoreAdv).length;
+    const points=w*3+dr;
+    const ppmVal=ms.length?(points/ms.length).toFixed(2):'0';
+    body+='<div class="pdf-sec"><h3>📋 Bilan — '+filterLbl+'</h3>';
+    body+='<div class="pdf-g3">';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:#16a34a">'+w+'</div><div class="pdf-l">Victoires</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:#d97706">'+dr+'</div><div class="pdf-l">Nuls</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:#dc2626">'+l+'</div><div class="pdf-l">Défaites</div></div>';
+    body+='</div><div class="pdf-g3">';
+    body+='<div class="pdf-st"><div class="pdf-n">'+points+'</div><div class="pdf-l">Points</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n">'+ppmVal+'</div><div class="pdf-l">Pts / match</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n">'+ms.length+'</div><div class="pdf-l">Matchs</div></div>';
+    body+='</div></div>';
+  }
+
+  // ── 2. BUTS ───────────────────────────────────────────────
+  {
+    const bg=ms.reduce((a,m)=>a+(m.scoreUR||0),0);
+    const bc=ms.reduce((a,m)=>a+(m.scoreAdv||0),0);
+    const cleansheets=ms.filter(m=>m.scoreAdv===0).length;
+    const diff=bg-bc;
+    body+='<div class="pdf-sec"><h3>⚽ Buts</h3><div class="pdf-g3">';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:#16a34a">'+bg+'</div><div class="pdf-l">Marqués</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:#dc2626">'+bc+'</div><div class="pdf-l">Encaissés</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:'+(diff>=0?'#16a34a':'#dc2626')+'">'+(diff>=0?'+':'')+diff+'</div><div class="pdf-l">Différence</div></div>';
+    body+='</div><div class="pdf-g3">';
+    body+='<div class="pdf-st"><div class="pdf-n">'+(ms.length?(bg/ms.length).toFixed(1):'0')+'</div><div class="pdf-l">Buts / match</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n">'+cleansheets+'</div><div class="pdf-l">Clean sheets</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n">'+(ms.length?Math.round(cleansheets/ms.length*100):0)+'%</div><div class="pdf-l">% Clean sheets</div></div>';
+    body+='</div></div>';
+  }
+
+  // ── 3. BUTS CUMULÉS PAR QUART D'HEURE ────────────────────
+  {
+    const ranges=[[0,15],[15,30],[30,45],[45,60],[60,75],[75,90]];
+    const labels=['0-15','15-30','30-45','45-60','60-75','75-90'];
+    const ur=ranges.map(()=>0),adv=ranges.map(()=>0);
+    ms.forEach(m=>{(m.goals||[]).forEach(g=>{ranges.forEach(([a,b],i)=>{if(g.min>a&&g.min<=b){if(g.team==='UR')ur[i]++;else adv[i]++;}});});});
+    if(ur.some(x=>x>0)||adv.some(x=>x>0)){
+      body+='<div class="pdf-sec"><h3>⏱ Buts cumulés par quart d\'heure</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Période</td>'+labels.map(q=>'<td style="font-weight:700;color:#64748b">'+q+"'</td>").join('')+'</tr>';
+      body+='<tr><td>⚽ UR</td>'+ur.map(v=>'<td>'+v+'</td>').join('')+'</tr>';
+      body+='<tr><td>🔴 Adversaire</td>'+adv.map(v=>'<td>'+v+'</td>').join('')+'</tr>';
+      body+='</table></div>';
     }
-    body+='</table></div>';
   }
-  // Temps de jeu cumulé
-  const playtime={};
-  ms.forEach(m=>{
-    const tit=Object.values(m.tit||{}).filter(Boolean);
-    const subs=m.subs||[];
-    tit.forEach(pid=>{const sub=subs.find(s=>s.outId===pid);playtime[pid]=(playtime[pid]||0)+(sub?sub.min:90);});
-    subs.forEach(s=>{if(s.inId)playtime[s.inId]=(playtime[s.inId]||0)+(90-s.min);});
-  });
-  const ptList=Object.entries(playtime).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  if(ptList.length){
-    const totalPossible=ms.length*90;
-    body+='<div class="pdf-sec"><h3>⏱ Temps de jeu cumulé</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Joueur</td><td style="font-weight:700;color:#64748b">Min.</td><td style="font-weight:700;color:#64748b">%</td></tr>';
-    ptList.forEach(([pid,min])=>{const p=players.find(x=>x.id===pid);if(!p)return;const pct=totalPossible?Math.round(min/totalPossible*100):0;body+='<tr><td><b>'+p.prenom+' '+p.nom+'</b></td><td>'+min+"'</td><td>"+pct+'%</td></tr>';});
-    body+='</table></div>';
+
+  // ── 4. TOP BUTEURS & PASSEURS ─────────────────────────────
+  {
+    const scorers={},assisters={};
+    ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.team==='UR'&&g.pid)scorers[g.pid]=(scorers[g.pid]||0)+1;if(g.assist)assisters[g.assist]=(assisters[g.assist]||0)+1;});});
+    const scList=Object.entries(scorers).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const asList=Object.entries(assisters).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    if(scList.length||asList.length){
+      body+='<div class="pdf-sec"><h3>🏆 Top buteurs & passeurs</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">⚽ Buteurs</td><td style="font-weight:700;color:#64748b">🅰 Passeurs</td></tr>';
+      const maxRows=Math.max(scList.length,asList.length,1);
+      for(let i=0;i<maxRows;i++){
+        const sc=scList[i],as=asList[i];
+        const scP=sc?players.find(p=>p.id===sc[0]):null;
+        const asP=as?players.find(p=>p.id===as[0]):null;
+        body+='<tr><td>'+(scP?scP.prenom+' '+scP.nom+' — <b>'+sc[1]+'</b>':'—')+'</td><td>'+(asP?asP.prenom+' '+asP.nom+' — <b>'+as[1]+'</b>':'—')+'</td></tr>';
+      }
+      body+='</table></div>';
+    }
   }
-  // Performance par schéma
-  const fStats={};
-  ms.forEach(m=>{const f=m.formation||'4-3-3';if(!fStats[f])fStats[f]={n:0,w:0,d:0,l:0,bg:0,bc:0};fStats[f].n++;if(m.scoreUR!=null&&m.scoreAdv!=null){if(m.scoreUR>m.scoreAdv)fStats[f].w++;else if(m.scoreUR===m.scoreAdv)fStats[f].d++;else fStats[f].l++;fStats[f].bg+=m.scoreUR;fStats[f].bc+=m.scoreAdv;}});
-  const fList=Object.entries(fStats).sort((a,b)=>b[1].n-a[1].n);
-  if(fList.length>1){
-    body+='<div class="pdf-sec"><h3>🗂 Performance par schéma</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Schéma</td><td style="font-weight:700;color:#64748b">M</td><td style="font-weight:700;color:#64748b">V/N/D</td><td style="font-weight:700;color:#64748b">Pts/M</td><td style="font-weight:700;color:#64748b">Buts</td></tr>';
-    fList.forEach(([f,s])=>{const pts2=s.w*3+s.d,ppm2=s.n?(pts2/s.n).toFixed(2):'0';body+='<tr><td><b>'+f+'</b></td><td>'+s.n+'</td><td>'+s.w+'/'+s.d+'/'+s.l+'</td><td>'+ppm2+'</td><td>'+s.bg+':'+s.bc+'</td></tr>';});
-    body+='</table></div>';
+
+  // ── 5. TEMPS DE JEU CUMULÉ ────────────────────────────────
+  {
+    const playtime={};
+    ms.forEach(m=>{
+      const tit=Object.values(m.tit||{}).filter(Boolean);
+      const subs=m.subs||[];
+      tit.forEach(pid=>{const sub=subs.find(s=>s.outId===pid);playtime[pid]=(playtime[pid]||0)+(sub?sub.min:90);});
+      subs.forEach(s=>{if(s.inId)playtime[s.inId]=(playtime[s.inId]||0)+(90-s.min);});
+    });
+    const ptList=Object.entries(playtime).sort((a,b)=>b[1]-a[1]).slice(0,15);
+    if(ptList.length){
+      const totalPossible=ms.length*90;
+      body+='<div class="pdf-sec"><h3>⏱ Temps de jeu cumulé</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Joueur</td><td style="font-weight:700;color:#64748b">Min.</td><td style="font-weight:700;color:#64748b">%</td></tr>';
+      ptList.forEach(([pid,min])=>{const p=players.find(x=>x.id===pid);if(!p)return;const pct=totalPossible?Math.round(min/totalPossible*100):0;body+='<tr><td><b>'+p.prenom+' '+p.nom+'</b></td><td>'+min+"'</td><td>"+pct+'%</td></tr>';});
+      body+='</table></div>';
+    }
   }
-  // Domicile / Extérieur
-  const homeStats={n:0,w:0,d:0,l:0,bg:0,bc:0},awayStats={n:0,w:0,d:0,l:0,bg:0,bc:0};
-  ms.forEach(m=>{const tgt=m.lieu==='Domicile'?homeStats:m.lieu==='Extérieur'?awayStats:null;if(!tgt)return;tgt.n++;if(m.scoreUR!=null&&m.scoreAdv!=null){if(m.scoreUR>m.scoreAdv)tgt.w++;else if(m.scoreUR===m.scoreAdv)tgt.d++;else tgt.l++;tgt.bg+=m.scoreUR;tgt.bc+=m.scoreAdv;}});
-  if(homeStats.n||awayStats.n){
-    body+='<div class="pdf-sec"><h3>🏟 Domicile vs Extérieur</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b"></td><td style="font-weight:700;color:#64748b">M</td><td style="font-weight:700;color:#64748b">V/N/D</td><td style="font-weight:700;color:#64748b">Pts/M</td><td style="font-weight:700;color:#64748b">Buts</td></tr>';
-    [['🏠 Domicile',homeStats],['🚌 Extérieur',awayStats]].forEach(([lbl,s])=>{if(!s.n){body+='<tr><td>'+lbl+'</td><td colspan="4" style="color:#94a3b8">aucun match</td></tr>';return;}const pts2=s.w*3+s.d,ppm2=(pts2/s.n).toFixed(2);body+='<tr><td>'+lbl+'</td><td>'+s.n+'</td><td>'+s.w+'/'+s.d+'/'+s.l+'</td><td>'+ppm2+'</td><td>'+s.bg+':'+s.bc+'</td></tr>';});
-    body+='</table></div>';
+
+  // ── 6. EFFICACITÉ PAR SYSTÈME DE JEU ─────────────────────
+  let bestFEntry=null;
+  {
+    const fStats={};
+    scoredMs.forEach(m=>{const f=m.formation||'?';(fStats[f]=fStats[f]||[]).push(m);});
+    const fList=Object.entries(fStats).sort((a,b)=>b[1].length-a[1].length);
+    if(fList.length){
+      bestFEntry=fList.slice().sort((a,b)=>parseFloat(statBox(b[1]).ppm)-parseFloat(statBox(a[1]).ppm))[0];
+      const worstFEntry=fList.length>1?fList.slice().sort((a,b)=>parseFloat(statBox(a[1]).ppm)-parseFloat(statBox(b[1]).ppm))[0]:null;
+      body+='<div class="pdf-sec"><h3>🗺 Efficacité par système de jeu</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Système</td><td style="font-weight:700;color:#64748b">M</td><td style="font-weight:700;color:#64748b">V%</td><td style="font-weight:700;color:#64748b">V/N/D</td><td style="font-weight:700;color:#64748b">Pts/M</td><td style="font-weight:700;color:#64748b">Buts</td></tr>';
+      fList.forEach(([f,arr])=>{
+        const s=statBox(arr);
+        const isBest=bestFEntry&&bestFEntry[0]===f;
+        const isWorst=worstFEntry&&worstFEntry[0]===f;
+        const bg=arr.reduce((a,m)=>a+(m.scoreUR||0),0),bc=arr.reduce((a,m)=>a+(m.scoreAdv||0),0);
+        body+='<tr><td><b>'+f+'</b>'+(isBest?' ✅':isWorst?' ⚠️':'')+'</td><td>'+arr.length+'</td><td><b>'+s.winPct+'%</b></td><td>'+s.w+'/'+s.d+'/'+s.l+'</td><td>'+s.ppm+'</td><td>'+bg+':'+bc+'</td></tr>';
+      });
+      body+='</table></div>';
+    }
   }
-  // Impact des remplaçants
-  let postSubGoalsUR=0,postSubGoalsAdv=0,subsTotal=0;
-  ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.postChg){if(g.team==='UR')postSubGoalsUR++;else postSubGoalsAdv++;}});subsTotal+=(m.subs||[]).length;});
-  body+='<div class="pdf-sec"><h3>🔄 Impact des remplaçants</h3><div class="pdf-g3">';
-  body+='<div class="pdf-st"><div class="pdf-n">'+subsTotal+'</div><div class="pdf-l">Changements</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:#16a34a">'+postSubGoalsUR+'</div><div class="pdf-l">Buts UR après chgt</div></div>';
-  body+='<div class="pdf-st"><div class="pdf-n" style="color:#dc2626">'+postSubGoalsAdv+'</div><div class="pdf-l">Encaissés après chgt</div></div>';
-  body+='</div></div>';
-  // Cartons cumulés
-  let yUR=0,yAdv=0,rUR=0,rAdv=0;
-  ms.forEach(m=>{(m.cards||[]).forEach(c=>{const isY=c.type==='jaune';const isR=(c.type==='rouge'||c.type==='jaune2');if(c.team==='UR'){if(isY)yUR++;if(isR)rUR++;}else{if(isY)yAdv++;if(isR)rAdv++;}});});
-  if(yUR+yAdv+rUR+rAdv>0){
-    body+='<div class="pdf-sec"><h3>🟨🟥 Cartons cumulés</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b"></td><td style="font-weight:700;color:#64748b">🟨 Jaunes</td><td style="font-weight:700;color:#64748b">🟥 Rouges / exclusions</td></tr>';
-    body+='<tr><td><b>UR</b></td><td>'+yUR+'</td><td>'+rUR+'</td></tr>';
-    body+='<tr><td><b>Adversaires</b></td><td>'+yAdv+'</td><td>'+rAdv+'</td></tr>';
-    body+='</table></div>';
+
+  // ── 7. DUELS TACTIQUES (notre système vs système adverse) ─
+  {
+    const matchsWithAdv=scoredMs.filter(m=>m.advFormation&&m.advFormation.trim());
+    if(matchsWithAdv.length>=2){
+      const duelStats={};
+      matchsWithAdv.forEach(m=>{const key=(m.formation||'?')+' vs '+m.advFormation;(duelStats[key]=duelStats[key]||[]).push(m);});
+      const duelList=Object.entries(duelStats).sort((a,b)=>b[1].length-a[1].length).slice(0,8);
+      body+='<div class="pdf-sec"><h3>⚔️ Duels tactiques — Nous vs Adversaire</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Notre schéma vs Adv</td><td style="font-weight:700;color:#64748b">M</td><td style="font-weight:700;color:#64748b">V%</td><td style="font-weight:700;color:#64748b">V/N/D</td><td style="font-weight:700;color:#64748b">Pts/M</td></tr>';
+      duelList.forEach(([key,arr])=>{const s=statBox(arr);body+='<tr><td>'+key+'</td><td>'+arr.length+'</td><td><b>'+s.winPct+'%</b></td><td>'+s.w+'/'+s.d+'/'+s.l+'</td><td>'+s.ppm+'</td></tr>';});
+      body+='</table></div>';
+    }
   }
-  // Historique des matchs
+
+  // ── 8. DOMICILE vs EXTÉRIEUR ──────────────────────────────
+  {
+    const homeStats={n:0,w:0,d:0,l:0,bg:0,bc:0},awayStats={n:0,w:0,d:0,l:0,bg:0,bc:0};
+    ms.forEach(m=>{const tgt=m.lieu==='Domicile'?homeStats:m.lieu==='Extérieur'?awayStats:null;if(!tgt)return;tgt.n++;if(m.scoreUR!=null&&m.scoreAdv!=null){if(m.scoreUR>m.scoreAdv)tgt.w++;else if(m.scoreUR===m.scoreAdv)tgt.d++;else tgt.l++;tgt.bg+=m.scoreUR;tgt.bc+=m.scoreAdv;}});
+    if(homeStats.n||awayStats.n){
+      body+='<div class="pdf-sec"><h3>🏟 Domicile vs Extérieur</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b"></td><td style="font-weight:700;color:#64748b">M</td><td style="font-weight:700;color:#64748b">V/N/D</td><td style="font-weight:700;color:#64748b">Pts/M</td><td style="font-weight:700;color:#64748b">Buts</td></tr>';
+      [['🏠 Domicile',homeStats],['🚌 Extérieur',awayStats]].forEach(([lbl,s])=>{if(!s.n){body+='<tr><td>'+lbl+'</td><td colspan="4" style="color:#94a3b8">aucun match</td></tr>';return;}const pts2=s.w*3+s.d,ppm2=(pts2/s.n).toFixed(2);body+='<tr><td>'+lbl+'</td><td>'+s.n+'</td><td>'+s.w+'/'+s.d+'/'+s.l+'</td><td>'+ppm2+'</td><td>'+s.bg+':'+s.bc+'</td></tr>';});
+      body+='</table></div>';
+    }
+  }
+
+  // ── 9. IMPACT DES REMPLAÇANTS ─────────────────────────────
+  {
+    let postSubGoalsUR=0,postSubGoalsAdv=0,subsTotal=0;
+    ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.postChg){if(g.team==='UR')postSubGoalsUR++;else postSubGoalsAdv++;}});subsTotal+=(m.subs||[]).length;});
+    body+='<div class="pdf-sec"><h3>🔄 Impact des remplaçants</h3><div class="pdf-g3">';
+    body+='<div class="pdf-st"><div class="pdf-n">'+subsTotal+'</div><div class="pdf-l">Changements</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:#16a34a">'+postSubGoalsUR+'</div><div class="pdf-l">Buts UR après chgt</div></div>';
+    body+='<div class="pdf-st"><div class="pdf-n" style="color:#dc2626">'+postSubGoalsAdv+'</div><div class="pdf-l">Encaissés après chgt</div></div>';
+    body+='</div></div>';
+  }
+
+  // ── 10. IMPACT DES PROFILS PF ─────────────────────────────
+  let topPfEntry=null;
+  {
+    const pfPerf={'Spécialiste':[],'Double':[],'Triple':[],'Complet':[],'Polyvalent':[]};
+    scoredMs.forEach(m=>{
+      const tids=Object.values(m.tit||{}).filter(Boolean);
+      const counted=new Set();
+      tids.forEach(id=>{const pl=players.find(p=>p.id===id);if(pl&&pl.profil&&pfPerf[pl.profil]!==undefined&&!counted.has(pl.profil)){counted.add(pl.profil);pfPerf[pl.profil].push(m);}});
+    });
+    const pfList=Object.entries(pfPerf).filter(([_,arr])=>arr.length>=2).sort((a,b)=>parseFloat(statBox(b[1]).ppm)-parseFloat(statBox(a[1]).ppm));
+    if(pfList.length>=2){
+      topPfEntry=pfList[0];
+      body+='<div class="pdf-sec"><h3>🏷 Impact des profils PF</h3><div style="font-size:11px;color:#64748b;margin-bottom:8px">Performance quand au moins un joueur de ce profil est titulaire</div><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Profil</td><td style="font-weight:700;color:#64748b">M</td><td style="font-weight:700;color:#64748b">V%</td><td style="font-weight:700;color:#64748b">V/N/D</td><td style="font-weight:700;color:#64748b">Pts/M</td></tr>';
+      pfList.forEach(([pf,arr])=>{const s=statBox(arr);body+='<tr><td><b>'+pf+'</b></td><td>'+arr.length+'</td><td><b>'+s.winPct+'%</b></td><td>'+s.w+'/'+s.d+'/'+s.l+'</td><td>'+s.ppm+'</td></tr>';});
+      body+='</table></div>';
+    }
+  }
+
+  // ── 11. MEILLEURES ASSOCIATIONS DE JOUEURS ────────────────
+  let topPairEntry=null;
+  {
+    const pairStats={};
+    scoredMs.forEach(m=>{
+      const tids=Object.values(m.tit||{}).filter(Boolean);
+      for(let i=0;i<tids.length;i++)for(let j=i+1;j<tids.length;j++){const key=[tids[i],tids[j]].sort().join('|');(pairStats[key]=pairStats[key]||[]).push(m);}
+    });
+    const topPairs=Object.entries(pairStats).filter(([_,arr])=>arr.length>=3).sort((a,b)=>parseFloat(statBox(b[1]).ppm)-parseFloat(statBox(a[1]).ppm)).slice(0,8);
+    if(topPairs.length){
+      topPairEntry=topPairs[0];
+      body+='<div class="pdf-sec"><h3>👥 Meilleures associations de joueurs</h3><div style="font-size:11px;color:#64748b;margin-bottom:8px">Duos les plus efficaces ensemble (min. 3 matchs)</div><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Association</td><td style="font-weight:700;color:#64748b">M</td><td style="font-weight:700;color:#64748b">V%</td><td style="font-weight:700;color:#64748b">V/N/D</td><td style="font-weight:700;color:#64748b">Pts/M</td></tr>';
+      topPairs.forEach(([key,arr])=>{
+        const ids=key.split('|');const p1=players.find(p=>p.id===ids[0]),p2=players.find(p=>p.id===ids[1]);if(!p1||!p2)return;
+        const s=statBox(arr);
+        body+='<tr><td><b>'+p1.prenom+' '+p1.nom.charAt(0)+'.</b> + <b>'+p2.prenom+' '+p2.nom.charAt(0)+'.</b></td><td>'+arr.length+'</td><td><b>'+s.winPct+'%</b></td><td>'+s.w+'/'+s.d+'/'+s.l+'</td><td>'+s.ppm+'</td></tr>';
+      });
+      body+='</table></div>';
+    }
+  }
+
+  // ── 12. TENDANCES ──────────────────────────────────────────
+  let formeTrend=null,csPctVal=null;
+  {
+    const sorted=[...scoredMs].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    if(sorted.length){
+      let streak=0,streakType='';
+      for(let i=sorted.length-1;i>=0;i--){const r=res(sorted[i]);if(i===sorted.length-1){streakType=r;streak=1;}else if(r===streakType)streak++;else break;}
+      const last5=sorted.slice(-5);
+      const l5pts=last5.reduce((a,m)=>a+(res(m)==='w'?3:res(m)==='d'?1:0),0);
+      const globalWPct=Math.round(sorted.filter(m=>res(m)==='w').length/sorted.length*100);
+      const l5wPct=Math.round(last5.filter(m=>res(m)==='w').length/last5.length*100);
+      formeTrend=l5wPct>globalWPct+10?'🔥 En forme':l5wPct<globalWPct-10?'📉 En baisse':'➡️ Stable';
+      const csCount=sorted.filter(m=>m.scoreAdv===0).length;
+      csPctVal=Math.round(csCount/sorted.length*100);
+      const scCount=sorted.filter(m=>m.scoreUR>0).length;
+      const bigWins=sorted.filter(m=>m.scoreUR-m.scoreAdv>=3).length;
+      const streakLbl=streakType==='w'?'victoire':streakType==='d'?'nul':'défaite';
+      body+='<div class="pdf-sec"><h3>📈 Tendances</h3><div class="pdf-g3">';
+      body+='<div class="pdf-st"><div class="pdf-n">'+streak+'</div><div class="pdf-l">'+streakLbl+(streak>1?'s':'')+' d\'affilée</div></div>';
+      body+='<div class="pdf-st"><div class="pdf-n">'+l5pts+'/15</div><div class="pdf-l">Pts sur 5 derniers</div></div>';
+      body+='<div class="pdf-st"><div class="pdf-n">'+csPctVal+'%</div><div class="pdf-l">Clean sheets</div></div>';
+      body+='</div><div class="pdf-g3">';
+      body+='<div class="pdf-st"><div class="pdf-n">'+Math.round(scCount/sorted.length*100)+'%</div><div class="pdf-l">Matchs avec but</div></div>';
+      body+='<div class="pdf-st"><div class="pdf-n">'+bigWins+'</div><div class="pdf-l">Larges victoires (+3)</div></div>';
+      body+='<div class="pdf-st"><div class="pdf-n" style="font-size:15px">'+last5.map(m=>res(m).toUpperCase()).join(' ')+'</div><div class="pdf-l">5 derniers résultats</div></div>';
+      body+='</div><p style="font-size:12px;color:#333;margin-top:6px">Forme récente : <b>'+formeTrend+'</b> (vs '+globalWPct+'% de victoires en moyenne)</p></div>';
+    }
+  }
+
+  // ── 13. INDICE DE COHÉRENCE TACTIQUE /100 ─────────────────
+  {
+    if(scoredMs.length>=2){
+      const globalWPct=Math.round(scoredMs.filter(m=>res(m)==='w').length/scoredMs.length*100);
+      const fStats2={};scoredMs.forEach(m=>{const f=m.formation||'?';(fStats2[f]=fStats2[f]||[]).push(m);});
+      const fList2=Object.entries(fStats2).sort((a,b)=>b[1].length-a[1].length);
+      const mostUsedF=fList2[0];
+      const mostUsedPct=mostUsedF?Math.round(mostUsedF[1].length/scoredMs.length*100):0;
+      const bg=scoredMs.reduce((a,m)=>a+(m.scoreUR||0),0),bc=scoredMs.reduce((a,m)=>a+(m.scoreAdv||0),0);
+      const ratio=bc>0?bg/bc:2;
+      const cWinRate=Math.round(globalWPct*0.30);
+      const cConsistency=Math.round(mostUsedPct*0.20);
+      const cBalance=Math.min(20,Math.round(ratio*10));
+      const sortedByDate=[...scoredMs].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+      const last5=sortedByDate.slice(-5);
+      const l5pts=last5.reduce((a,m)=>a+(res(m)==='w'?3:res(m)==='d'?1:0),0);
+      const cForm=l5pts>=10?20:l5pts>=7?15:l5pts>=4?10:5;
+      const homeMs2=scoredMs.filter(m=>m.lieu==='Domicile');
+      const cHome=homeMs2.length?Math.round((homeMs2.filter(m=>res(m)==='w').length/homeMs2.length*100)*0.10):5;
+      const cohIdx=Math.min(100,Math.max(0,cWinRate+cConsistency+cBalance+cForm+cHome));
+      const cohLbl=cohIdx>=80?'Équipe très cohérente tactiquement':cohIdx>=65?'Bonne cohérence — quelques axes à consolider':cohIdx>=50?'Cohérence partielle — des marges de progression':cohIdx>=35?'Instabilité tactique — révision nécessaire':'Manque de cohérence structurelle';
+      body+='<div class="pdf-sec"><h3>📐 Indice de cohérence tactique</h3>';
+      body+='<div class="pdf-g3"><div class="pdf-st" style="grid-column:span 3"><div class="pdf-n">'+cohIdx+'/100</div></div></div>';
+      body+='<p style="font-size:12px;color:#333;margin-bottom:8px"><b>'+cohLbl+'</b></p>';
+      body+='<table class="pdf-t"><tr><td>🏆 Win rate</td><td><b>'+cWinRate+'/30</b></td></tr><tr><td>🗺 Constance</td><td><b>'+cConsistency+'/20</b></td></tr><tr><td>⚖️ Équilibre</td><td><b>'+cBalance+'/20</b></td></tr><tr><td>📈 Forme récente</td><td><b>'+cForm+'/20</b></td></tr><tr><td>🏠 Domicile</td><td><b>'+cHome+'/10</b></td></tr></table>';
+      body+='</div>';
+    }
+  }
+
+  // ── 14. RECOMMANDATIONS AUTOMATIQUES ──────────────────────
+  {
+    const recs=[];
+    if(bestFEntry&&bestFEntry[1].length>=2){const s=statBox(bestFEntry[1]);recs.push('🗺 Système à privilégier : <b>'+bestFEntry[0]+'</b> ('+s.winPct+'% de victoires sur '+bestFEntry[1].length+' matchs)');}
+    if(formeTrend==='🔥 En forme')recs.push('🔥 Dynamique positive — maintenez le système et la composition actuels.');
+    else if(formeTrend==='📉 En baisse')recs.push('📉 Baisse de forme sur les 5 derniers matchs — envisagez un changement de système ou de composition.');
+    if(csPctVal!=null&&csPctVal<25&&scoredMs.length>=5)recs.push('🛡️ Seulement '+csPctVal+'% de clean sheets — travaillez l\'organisation défensive.');
+    if(topPfEntry)recs.push('⭐ Les joueurs de profil <b>'+topPfEntry[0]+'</b> élèvent vos performances — priorisez leur titularisation.');
+    if(topPairEntry){const ids=topPairEntry[0].split('|');const p1=players.find(p=>p.id===ids[0]),p2=players.find(p=>p.id===ids[1]);if(p1&&p2)recs.push('👥 Duo à maintenir : <b>'+p1.prenom+' '+p1.nom+'</b> + <b>'+p2.prenom+' '+p2.nom+'</b>.');}
+    if(recs.length){
+      body+='<div class="pdf-sec"><h3>🎯 Recommandations</h3>'+recs.map(r=>'<p style="font-size:12px;color:#333;margin-bottom:6px">• '+r+'</p>').join('')+'</div>';
+    }
+  }
+
+  // ── 15. CARTONS CUMULÉS ────────────────────────────────────
+  {
+    let yUR=0,yAdv=0,rUR=0,rAdv=0;
+    ms.forEach(m=>{(m.cards||[]).forEach(c=>{const isY=c.type==='jaune';const isR=(c.type==='rouge'||c.type==='jaune2');if(c.team==='UR'){if(isY)yUR++;if(isR)rUR++;}else{if(isY)yAdv++;if(isR)rAdv++;}});});
+    if(yUR+yAdv+rUR+rAdv>0){
+      body+='<div class="pdf-sec"><h3>🟨🟥 Cartons cumulés</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b"></td><td style="font-weight:700;color:#64748b">🟨 Jaunes</td><td style="font-weight:700;color:#64748b">🟥 Rouges / exclusions</td></tr>';
+      body+='<tr><td><b>UR</b></td><td>'+yUR+'</td><td>'+rUR+'</td></tr>';
+      body+='<tr><td><b>Adversaires</b></td><td>'+yAdv+'</td><td>'+rAdv+'</td></tr>';
+      body+='</table></div>';
+    }
+  }
+
+  // ── 16. POINTS PRIS PAR JOUEUR SELON LE TEMPS DE JEU (score en direct) ─
+  {
+    const acc={};
+    ms.forEach(m=>{
+      const events=(m.goals||[]).map(g=>({min:g.min,delta:g.team==='UR'?1:-1})).sort((a,b)=>a.min-b.min);
+      const diffAt=t=>{let d=0;for(const e of events){if(e.min<=t)d+=e.delta;else break;}return d;};
+      const splitByState=(start,end)=>{
+        const seg={win:0,draw:0,lose:0};
+        if(end<=start)return seg;
+        let cursor=start,state=diffAt(start);
+        const within=events.filter(e=>e.min>start&&e.min<end).sort((a,b)=>a.min-b.min);
+        within.forEach(e=>{
+          const len=e.min-cursor;
+          if(len>0){if(state>0)seg.win+=len;else if(state===0)seg.draw+=len;else seg.lose+=len;}
+          state+=e.delta;cursor=e.min;
+        });
+        const lastLen=end-cursor;
+        if(lastLen>0){if(state>0)seg.win+=lastLen;else if(state===0)seg.draw+=lastLen;else seg.lose+=lastLen;}
+        return seg;
+      };
+      const starters=Object.values(m.tit||{}).filter(Boolean);
+      const subs=m.subs||[];
+      const intervals={};
+      starters.forEach(pid=>{
+        const outSub=subs.filter(s=>s.outId===pid).sort((a,b)=>a.min-b.min)[0];
+        (intervals[pid]=intervals[pid]||[]).push({start:0,end:outSub?outSub.min:90});
+      });
+      subs.forEach(s=>{
+        if(!s.inId)return;
+        const laterOut=subs.filter(s2=>s2.outId===s.inId&&s2.min>s.min).sort((a,b)=>a.min-b.min)[0];
+        (intervals[s.inId]=intervals[s.inId]||[]).push({start:s.min,end:laterOut?laterOut.min:90});
+      });
+      Object.keys(intervals).forEach(pid=>{
+        if(!acc[pid])acc[pid]={win:0,draw:0,lose:0,played:0};
+        intervals[pid].forEach(iv=>{
+          const len=Math.max(0,iv.end-iv.start);
+          acc[pid].played+=len;
+          const seg=splitByState(iv.start,iv.end);
+          acc[pid].win+=seg.win;acc[pid].draw+=seg.draw;acc[pid].lose+=seg.lose;
+        });
+      });
+    });
+    const list=Object.entries(acc).filter(([_,s])=>s.played>0).map(([pid,s])=>{
+      const eqPts=(s.win/90*3)+(s.draw/90*1);
+      const per90=s.played>0?(eqPts/(s.played/90)):0;
+      return{pid,s,eqPts,per90};
+    }).sort((a,b)=>b.per90-a.per90);
+    if(list.length){
+      body+='<div class="pdf-sec"><h3>🎯 Points pris par joueur selon le temps de jeu (score en direct)</h3>';
+      body+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">Minutes passées sur le terrain pendant que l\'équipe menait / était à égalité / était menée (reconstitué à partir des buts horodatés), converties en équivalent points (3 pts en tête, 1 pt à égalité, 0 mené) rapportés à 90 minutes.</div>';
+      body+='<table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Joueur</td><td style="font-weight:700;color:#64748b">Min.</td><td style="font-weight:700;color:#64748b">En tête</td><td style="font-weight:700;color:#64748b">Égalité</td><td style="font-weight:700;color:#64748b">Mené</td><td style="font-weight:700;color:#64748b">Pts équiv.</td><td style="font-weight:700;color:#64748b">Pts/90</td></tr>';
+      list.slice(0,20).forEach(x=>{
+        const p=players.find(pp=>pp.id===x.pid);if(!p)return;
+        body+='<tr><td><b>'+p.prenom+' '+p.nom+'</b></td><td>'+Math.round(x.s.played)+"'</td><td>"+Math.round(x.s.win)+"'</td><td>"+Math.round(x.s.draw)+"'</td><td>"+Math.round(x.s.lose)+"'</td><td>"+x.eqPts.toFixed(1)+'</td><td><b>'+x.per90.toFixed(2)+'</b></td></tr>';
+      });
+      body+='</table></div>';
+    }
+  }
+
+  // ── 17. HISTORIQUE DES MATCHS ─────────────────────────────
   body+='<div class="pdf-sec"><h3>📋 Historique des matchs</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Date</td><td style="font-weight:700;color:#64748b">Adversaire</td><td style="font-weight:700;color:#64748b">Score</td><td style="font-weight:700;color:#64748b">Compét.</td></tr>';
   [...ms].sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(m=>{
     const score=m.scoreUR!=null&&m.scoreAdv!=null?m.scoreUR+' - '+m.scoreAdv:'—';
     body+='<tr><td>'+new Date(m.date).toLocaleDateString('fr-FR')+'</td><td>'+(m.adv||'—')+'</td><td><b>'+score+'</b></td><td>'+(m.competition||m.compType||'—')+'</td></tr>';
   });
   body+='</table></div>';
+
   body+='<div class="pdf-ft">Généré le '+new Date().toLocaleDateString('fr-FR')+' par '+(CU?CU.name:'?')+' · UR Scout DB v4 · Filtre : '+filterLbl+' · '+ms.length+' match'+(ms.length>1?'s':'')+'</div>';
   showPDFView(body,'Données cumulées');
 }
