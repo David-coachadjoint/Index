@@ -1716,9 +1716,78 @@ function renderData(){
   html+=safe(function(){return renderDataContext(ms);},'Context');
   // Impact remplaçants
   html+=safe(function(){return renderDataSubstitutes(ms);},'Substitutes');
+  // Points pris par joueur selon le temps de jeu (score en direct)
+  html+=safe(function(){return renderDataPointsPerPlaytime(ms);},'PointsPerPlaytime');
   // Analyse tactique data scientist
   html+=safe(function(){return renderDataTacticalAnalysis(ms);},'TacticalAnalysis');
   el.innerHTML=html;
+}
+
+// ═══════ CALCUL PARTAGÉ : points pris par joueur selon le score en direct ═══════
+function computePlayerScoreStateStats(ms){
+  const acc={};
+  ms.forEach(m=>{
+    const events=(m.goals||[]).map(g=>({min:g.min,delta:g.team==='UR'?1:-1})).sort((a,b)=>a.min-b.min);
+    const diffAt=t=>{let d=0;for(const e of events){if(e.min<=t)d+=e.delta;else break;}return d;};
+    const splitByState=(start,end)=>{
+      const seg={win:0,draw:0,lose:0};
+      if(end<=start)return seg;
+      let cursor=start,state=diffAt(start);
+      const within=events.filter(e=>e.min>start&&e.min<end).sort((a,b)=>a.min-b.min);
+      within.forEach(e=>{
+        const len=e.min-cursor;
+        if(len>0){if(state>0)seg.win+=len;else if(state===0)seg.draw+=len;else seg.lose+=len;}
+        state+=e.delta;cursor=e.min;
+      });
+      const lastLen=end-cursor;
+      if(lastLen>0){if(state>0)seg.win+=lastLen;else if(state===0)seg.draw+=lastLen;else seg.lose+=lastLen;}
+      return seg;
+    };
+    // Intervalles de présence : titulaires (via curMatch.tit) + tout joueur ayant un événement de remplacement
+    // (entrée via subs[].inId ou sortie via subs[].outId), pour ne perdre personne même si la
+    // composition de départ est incomplète ou si un remplaçant n'a pas de titulaire "sortant" associé.
+    const subs=m.subs||[];
+    const starters=Object.values(m.tit||{}).filter(Boolean);
+    const knownIds=new Set(starters);
+    subs.forEach(s=>{if(s.inId)knownIds.add(s.inId);if(s.outId)knownIds.add(s.outId);});
+    const intervals={};
+    knownIds.forEach(pid=>{
+      const isStarter=starters.includes(pid);
+      const inSub=subs.filter(s=>s.inId===pid).sort((a,b)=>a.min-b.min)[0];
+      const startMin=isStarter?0:(inSub?inSub.min:0);
+      const outSub=subs.filter(s=>s.outId===pid&&s.min>=startMin).sort((a,b)=>a.min-b.min)[0];
+      (intervals[pid]=intervals[pid]||[]).push({start:startMin,end:outSub?outSub.min:90});
+    });
+    Object.keys(intervals).forEach(pid=>{
+      if(!acc[pid])acc[pid]={win:0,draw:0,lose:0,played:0};
+      intervals[pid].forEach(iv=>{
+        const len=Math.max(0,iv.end-iv.start);
+        acc[pid].played+=len;
+        const seg=splitByState(iv.start,iv.end);
+        acc[pid].win+=seg.win;acc[pid].draw+=seg.draw;acc[pid].lose+=seg.lose;
+      });
+    });
+  });
+  return Object.entries(acc).filter(([_,s])=>s.played>0).map(([pid,s])=>{
+    const eqPts=(s.win/90*3)+(s.draw/90*1);
+    const per90=s.played>0?(eqPts/(s.played/90)):0;
+    return{pid,s,eqPts,per90};
+  }).sort((a,b)=>b.per90-a.per90);
+}
+
+function renderDataPointsPerPlaytime(ms){
+  const list=computePlayerScoreStateStats(ms);
+  if(!list.length)return '';
+  let html='<div class="sec"><div class="stit">🎯 Points pris par joueur selon le temps de jeu (score en direct)</div>';
+  html+='<div style="font-size:11px;color:#718096;margin-bottom:11px">Minutes passées sur le terrain pendant que l\'équipe menait / était à égalité / était menée (reconstitué à partir des buts horodatés), converties en équivalent points (3 pts en tête, 1 pt à égalité, 0 mené) rapportés à 90 minutes. Tous les joueurs ayant du temps de jeu enregistré sont listés.</div>';
+  html+='<div class="tw"><table><thead><tr><th>Joueur</th><th>Min.</th><th>En tête</th><th>Égalité</th><th>Mené</th><th>Pts équiv.</th><th>Pts/90</th></tr></thead><tbody>';
+  list.forEach(x=>{
+    const p=players.find(pp=>pp.id===x.pid);if(!p)return;
+    const c=x.per90>=2?'#68d391':x.per90>=1.3?'#63b3ed':x.per90>=0.8?'#f6c90e':'#fc8181';
+    html+='<tr onclick="openDt(\''+x.pid+'\')" style="cursor:pointer"><td><strong>'+p.prenom+' '+p.nom+'</strong></td><td>'+Math.round(x.s.played)+"'</td><td style=\"color:#68d391\">"+Math.round(x.s.win)+"'</td><td style=\"color:#f6c90e\">"+Math.round(x.s.draw)+"'</td><td style=\"color:#fc8181\">"+Math.round(x.s.lose)+"'</td><td>"+x.eqPts.toFixed(1)+'</td><td><strong style="color:'+c+'">'+x.per90.toFixed(2)+'</strong></td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  return html;
 }
 
 function renderDataQH(ms){
@@ -2472,56 +2541,12 @@ function exportDataPDF(){
 
   // ── 16. POINTS PRIS PAR JOUEUR SELON LE TEMPS DE JEU (score en direct) ─
   {
-    const acc={};
-    ms.forEach(m=>{
-      const events=(m.goals||[]).map(g=>({min:g.min,delta:g.team==='UR'?1:-1})).sort((a,b)=>a.min-b.min);
-      const diffAt=t=>{let d=0;for(const e of events){if(e.min<=t)d+=e.delta;else break;}return d;};
-      const splitByState=(start,end)=>{
-        const seg={win:0,draw:0,lose:0};
-        if(end<=start)return seg;
-        let cursor=start,state=diffAt(start);
-        const within=events.filter(e=>e.min>start&&e.min<end).sort((a,b)=>a.min-b.min);
-        within.forEach(e=>{
-          const len=e.min-cursor;
-          if(len>0){if(state>0)seg.win+=len;else if(state===0)seg.draw+=len;else seg.lose+=len;}
-          state+=e.delta;cursor=e.min;
-        });
-        const lastLen=end-cursor;
-        if(lastLen>0){if(state>0)seg.win+=lastLen;else if(state===0)seg.draw+=lastLen;else seg.lose+=lastLen;}
-        return seg;
-      };
-      const starters=Object.values(m.tit||{}).filter(Boolean);
-      const subs=m.subs||[];
-      const intervals={};
-      starters.forEach(pid=>{
-        const outSub=subs.filter(s=>s.outId===pid).sort((a,b)=>a.min-b.min)[0];
-        (intervals[pid]=intervals[pid]||[]).push({start:0,end:outSub?outSub.min:90});
-      });
-      subs.forEach(s=>{
-        if(!s.inId)return;
-        const laterOut=subs.filter(s2=>s2.outId===s.inId&&s2.min>s.min).sort((a,b)=>a.min-b.min)[0];
-        (intervals[s.inId]=intervals[s.inId]||[]).push({start:s.min,end:laterOut?laterOut.min:90});
-      });
-      Object.keys(intervals).forEach(pid=>{
-        if(!acc[pid])acc[pid]={win:0,draw:0,lose:0,played:0};
-        intervals[pid].forEach(iv=>{
-          const len=Math.max(0,iv.end-iv.start);
-          acc[pid].played+=len;
-          const seg=splitByState(iv.start,iv.end);
-          acc[pid].win+=seg.win;acc[pid].draw+=seg.draw;acc[pid].lose+=seg.lose;
-        });
-      });
-    });
-    const list=Object.entries(acc).filter(([_,s])=>s.played>0).map(([pid,s])=>{
-      const eqPts=(s.win/90*3)+(s.draw/90*1);
-      const per90=s.played>0?(eqPts/(s.played/90)):0;
-      return{pid,s,eqPts,per90};
-    }).sort((a,b)=>b.per90-a.per90);
+    const list=computePlayerScoreStateStats(ms);
     if(list.length){
       body+='<div class="pdf-sec"><h3>🎯 Points pris par joueur selon le temps de jeu (score en direct)</h3>';
-      body+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">Minutes passées sur le terrain pendant que l\'équipe menait / était à égalité / était menée (reconstitué à partir des buts horodatés), converties en équivalent points (3 pts en tête, 1 pt à égalité, 0 mené) rapportés à 90 minutes.</div>';
+      body+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">Minutes passées sur le terrain pendant que l\'équipe menait / était à égalité / était menée (reconstitué à partir des buts horodatés), converties en équivalent points (3 pts en tête, 1 pt à égalité, 0 mené) rapportés à 90 minutes. Tous les joueurs ayant du temps de jeu enregistré sont listés ('+list.length+').</div>';
       body+='<table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Joueur</td><td style="font-weight:700;color:#64748b">Min.</td><td style="font-weight:700;color:#64748b">En tête</td><td style="font-weight:700;color:#64748b">Égalité</td><td style="font-weight:700;color:#64748b">Mené</td><td style="font-weight:700;color:#64748b">Pts équiv.</td><td style="font-weight:700;color:#64748b">Pts/90</td></tr>';
-      list.slice(0,20).forEach(x=>{
+      list.forEach(x=>{
         const p=players.find(pp=>pp.id===x.pid);if(!p)return;
         body+='<tr><td><b>'+p.prenom+' '+p.nom+'</b></td><td>'+Math.round(x.s.played)+"'</td><td>"+Math.round(x.s.win)+"'</td><td>"+Math.round(x.s.draw)+"'</td><td>"+Math.round(x.s.lose)+"'</td><td>"+x.eqPts.toFixed(1)+'</td><td><b>'+x.per90.toFixed(2)+'</b></td></tr>';
       });
