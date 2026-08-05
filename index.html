@@ -1833,20 +1833,20 @@ function renderDataQH(ms){
 
 function renderDataScorers(ms){
   const scorers={},assisters={};
-  ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.team==='UR'&&g.pid){scorers[g.pid]=(scorers[g.pid]||0)+1;}if(g.assist){assisters[g.assist]=(assisters[g.assist]||0)+1;}});});
-  const scList=Object.entries(scorers).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const asList=Object.entries(assisters).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.team==='UR'&&g.pid){scorers[g.pid]=(scorers[g.pid]||0)+1;}if(g.team==='UR'&&g.assist){assisters[g.assist]=(assisters[g.assist]||0)+1;}});});
+  const scList=Object.entries(scorers).sort((a,b)=>b[1]-a[1]);
+  const asList=Object.entries(assisters).sort((a,b)=>b[1]-a[1]);
   let html='<div class="sec"><div class="stit">🏆 Top buteurs & passeurs</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">';
   // Buteurs
   html+='<div><div style="font-size:11px;font-weight:700;color:#fc8181;margin-bottom:8px;text-transform:uppercase">⚽ Buteurs</div>';
   if(!scList.length)html+='<div style="color:#718096;font-size:12px">—</div>';
-  else scList.forEach(([pid,n],i)=>{const p=players.find(x=>x.id===pid);if(!p)return;html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(45,74,122,.4);font-size:13px;cursor:pointer" onclick="openDt(\''+pid+'\')"><span style="width:18px;color:'+(i===0?'#f6c90e':'#718096')+';font-weight:700">'+(i+1)+'</span><span style="flex:1">'+p.prenom+' '+p.nom+'</span><span style="color:#fc8181;font-weight:900">'+n+'</span></div>';});
+  else scList.forEach(([pid,n],i)=>{let p=players.find(x=>x.id===pid);if(!p)p={prenom:'(joueur',nom:'supprim\u00e9)'};html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(45,74,122,.4);font-size:13px;cursor:pointer" onclick="openDt(\''+pid+'\')"><span style="width:18px;color:'+(i===0?'#f6c90e':'#718096')+';font-weight:700">'+(i+1)+'</span><span style="flex:1">'+p.prenom+' '+p.nom+'</span><span style="color:#fc8181;font-weight:900">'+n+'</span></div>';});
   html+='</div>';
   // Passeurs
   html+='<div><div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:8px;text-transform:uppercase">🅰 Passeurs</div>';
   if(!asList.length)html+='<div style="color:#718096;font-size:12px">—</div>';
-  else asList.forEach(([pid,n],i)=>{const p=players.find(x=>x.id===pid);if(!p)return;html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(45,74,122,.4);font-size:13px;cursor:pointer" onclick="openDt(\''+pid+'\')"><span style="width:18px;color:'+(i===0?'#f6c90e':'#718096')+';font-weight:700">'+(i+1)+'</span><span style="flex:1">'+p.prenom+' '+p.nom+'</span><span style="color:#a78bfa;font-weight:900">'+n+'</span></div>';});
+  else asList.forEach(([pid,n],i)=>{let p=players.find(x=>x.id===pid);if(!p)p={prenom:'(joueur',nom:'supprim\u00e9)'};html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(45,74,122,.4);font-size:13px;cursor:pointer" onclick="openDt(\''+pid+'\')"><span style="width:18px;color:'+(i===0?'#f6c90e':'#718096')+';font-weight:700">'+(i+1)+'</span><span style="flex:1">'+p.prenom+' '+p.nom+'</span><span style="color:#a78bfa;font-weight:900">'+n+'</span></div>';});
   html+='</div></div>';
   // Combined ranking (G+A)
   const combined={};
