@@ -2326,9 +2326,9 @@ function exportDataPDF(){
   // ── 4. TOP BUTEURS & PASSEURS ─────────────────────────────
   {
     const scorers={},assisters={};
-    ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.team==='UR'&&g.pid)scorers[g.pid]=(scorers[g.pid]||0)+1;if(g.assist)assisters[g.assist]=(assisters[g.assist]||0)+1;});});
-    const scList=Object.entries(scorers).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const asList=Object.entries(assisters).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.team==='UR'&&g.pid)scorers[g.pid]=(scorers[g.pid]||0)+1;if(g.team==='UR'&&g.assist)assisters[g.assist]=(assisters[g.assist]||0)+1;});});
+    const scList=Object.entries(scorers).sort((a,b)=>b[1]-a[1]);
+    const asList=Object.entries(assisters).sort((a,b)=>b[1]-a[1]);
     if(scList.length||asList.length){
       body+='<div class="pdf-sec"><h3>🏆 Top buteurs & passeurs</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">⚽ Buteurs</td><td style="font-weight:700;color:#64748b">🅰 Passeurs</td></tr>';
       const maxRows=Math.max(scList.length,asList.length,1);
@@ -2336,7 +2336,7 @@ function exportDataPDF(){
         const sc=scList[i],as=asList[i];
         const scP=sc?players.find(p=>p.id===sc[0]):null;
         const asP=as?players.find(p=>p.id===as[0]):null;
-        body+='<tr><td>'+(scP?scP.prenom+' '+scP.nom+' — <b>'+sc[1]+'</b>':'—')+'</td><td>'+(asP?asP.prenom+' '+asP.nom+' — <b>'+as[1]+'</b>':'—')+'</td></tr>';
+        body+='<tr><td>'+(sc?((scP?scP.prenom+' '+scP.nom:'(joueur supprim\u00e9)')+' — <b>'+sc[1]+'</b>'):'—')+'</td><td>'+(as?((asP?asP.prenom+' '+asP.nom:'(joueur supprim\u00e9)')+' — <b>'+as[1]+'</b>'):'—')+'</td></tr>';
       }
       body+='</table></div>';
     }
