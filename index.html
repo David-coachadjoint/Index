@@ -555,7 +555,7 @@ body.pdf-mode>:not(#pdf-overlay):not(#toast){display:none !important}
         <button class="chip" id="dchip-championnat" onclick="setDataFilter('championnat')">🏆 Champ.</button>
         <button class="chip" id="dchip-coupe" onclick="setDataFilter('coupe')">🥇 Coupe</button>
         <button class="chip" id="dchip-amical" onclick="setDataFilter('amical')">🤝 Amical</button>
-        <button class="btn btn-o btn-sm" onclick="exportDataPDF()">📄 Export PDF</button>
+        <button class="btn btn-o btn-sm" onclick="openPdfExport()">📄 Export PDF</button>
       </div>
     </div>
     <div id="data-content"></div>
@@ -789,6 +789,19 @@ body.pdf-mode>:not(#pdf-overlay):not(#toast){display:none !important}
 </div>
 
 <!-- MODAL CONFIG -->
+<div class="overlay" id="m-pdfsec" onclick="closeOut(event,'m-pdfsec')">
+  <div class="modal" style="max-width:560px">
+    <button class="mclose" onclick="closeMod('m-pdfsec')">✕</button>
+    <div class="mtit">📄 Export PDF — Sections à inclure</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-o btn-sm" onclick="pdfSecAll(true)">✅ Tout cocher</button>
+      <button class="btn btn-o btn-sm" onclick="pdfSecAll(false)">⬜ Tout décocher</button>
+    </div>
+    <div id="pdfsec-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-bottom:16px"></div>
+    <div style="font-size:11px;color:#718096;margin-bottom:12px">💡 Le filtre de compétition de l'onglet Data (Tous / Champ. / Coupe / Amical) s'applique aussi au PDF. Les 🎯 Recommandations sont plus complètes quand les sections Systèmes, Profils, Associations et Tendances sont cochées. Votre sélection est mémorisée.</div>
+    <button class="btn-login" onclick="launchPdfExport()">📄 Générer le PDF</button>
+  </div>
+</div>
 <div class="overlay" id="m-cfg" onclick="closeOut(event,'m-cfg')">
   <div class="modal">
     <button class="mclose" onclick="closeMod('m-cfg')">✕</button>
@@ -2260,7 +2273,25 @@ function renderDataTacticalAnalysis(ms){
 }
 
 // ═══════ EXPORT PDF — ONGLET DATA ═══════
-function exportDataPDF(){
+const PDF_SECTIONS=[["bilan","📋 Bilan"],["buts","⚽ Buts"],["qh","⏱ Buts par quart d'heure"],["scorers","🏆 Top buteurs & passeurs"],["playtime","⏱ Temps de jeu cumulé"],["formations","🗺 Efficacité par système"],["duels","⚔️ Duels tactiques"],["domicile","🏟 Domicile vs Extérieur"],["remplacants","🔄 Impact des remplaçants"],["profils","🏷 Impact des profils PF"],["associations","👥 Associations de joueurs"],["tendances","📈 Tendances"],["coherence","📐 Cohérence tactique"],["recommandations","🎯 Recommandations"],["points","🎯 Points selon temps de jeu"],["cartons","🟨🟥 Cartons cumulés"],["historique","📋 Historique des matchs"]];
+function openPdfExport(){
+  if(!getFilteredMatchs().length){toast('⚠ Aucune donnée à exporter');return;}
+  let saved=null;try{saved=JSON.parse(localStorage.getItem('ur9_pdfsec')||'null');}catch(e){}
+  document.getElementById('pdfsec-list').innerHTML=PDF_SECTIONS.map(function(s){
+    return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;padding:5px 6px;border-radius:6px;cursor:pointer;background:#0e1a2e;border:1px solid #2d4a7a"><input type="checkbox" class="pdfsec-cb" value="'+s[0]+'"'+((!saved||saved.indexOf(s[0])>=0)?' checked':'')+' style="accent-color:#63b3ed">'+s[1]+'</label>';
+  }).join('');
+  openMod('m-pdfsec');
+}
+function pdfSecAll(v){document.querySelectorAll('.pdfsec-cb').forEach(function(c){c.checked=v;});}
+function launchPdfExport(){
+  const sel=[].slice.call(document.querySelectorAll('.pdfsec-cb')).filter(function(c){return c.checked;}).map(function(c){return c.value;});
+  if(!sel.length){toast('⚠ Sélectionnez au moins une section');return;}
+  localStorage.setItem('ur9_pdfsec',JSON.stringify(sel));
+  closeMod('m-pdfsec');
+  exportDataPDF(new Set(sel));
+}
+function exportDataPDF(secSel){
+  const S=function(k){return !secSel||secSel.has(k);};
   const ms=getFilteredMatchs();
   if(!ms.length){toast('⚠ Aucune donnée à exporter');return;}
   const filterLbl={all:'Tous',championnat:'🏆 Championnat',coupe:'🥇 Coupe',amical:'🤝 Amical'}[dataFilter]||'Tous';
@@ -2274,7 +2305,7 @@ function exportDataPDF(){
   let body='';
 
   // ── 1. BILAN ──────────────────────────────────────────────
-  {
+  if(S('bilan')){
     const w=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR>m.scoreAdv).length;
     const dr=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR===m.scoreAdv).length;
     const l=ms.filter(m=>m.scoreUR!=null&&m.scoreAdv!=null&&m.scoreUR<m.scoreAdv).length;
@@ -2293,7 +2324,7 @@ function exportDataPDF(){
   }
 
   // ── 2. BUTS ───────────────────────────────────────────────
-  {
+  if(S('buts')){
     const bg=ms.reduce((a,m)=>a+(m.scoreUR||0),0);
     const bc=ms.reduce((a,m)=>a+(m.scoreAdv||0),0);
     const cleansheets=ms.filter(m=>m.scoreAdv===0).length;
@@ -2310,7 +2341,7 @@ function exportDataPDF(){
   }
 
   // ── 3. BUTS CUMULÉS PAR QUART D'HEURE ────────────────────
-  {
+  if(S('qh')){
     const ranges=[[0,15],[15,30],[30,45],[45,60],[60,75],[75,90]];
     const labels=['0-15','15-30','30-45','45-60','60-75','75-90'];
     const ur=ranges.map(()=>0),adv=ranges.map(()=>0);
@@ -2324,7 +2355,7 @@ function exportDataPDF(){
   }
 
   // ── 4. TOP BUTEURS & PASSEURS ─────────────────────────────
-  {
+  if(S('scorers')){
     const scorers={},assisters={};
     ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.team==='UR'&&g.pid)scorers[g.pid]=(scorers[g.pid]||0)+1;if(g.team==='UR'&&g.assist)assisters[g.assist]=(assisters[g.assist]||0)+1;});});
     const scList=Object.entries(scorers).sort((a,b)=>b[1]-a[1]);
@@ -2343,7 +2374,7 @@ function exportDataPDF(){
   }
 
   // ── 5. TEMPS DE JEU CUMULÉ ────────────────────────────────
-  {
+  if(S('playtime')){
     const playtime={};
     ms.forEach(m=>{
       const tit=Object.values(m.tit||{}).filter(Boolean);
@@ -2362,7 +2393,7 @@ function exportDataPDF(){
 
   // ── 6. EFFICACITÉ PAR SYSTÈME DE JEU ─────────────────────
   let bestFEntry=null;
-  {
+  if(S('formations')){
     const fStats={};
     scoredMs.forEach(m=>{const f=m.formation||'?';(fStats[f]=fStats[f]||[]).push(m);});
     const fList=Object.entries(fStats).sort((a,b)=>b[1].length-a[1].length);
@@ -2382,7 +2413,7 @@ function exportDataPDF(){
   }
 
   // ── 7. DUELS TACTIQUES (notre système vs système adverse) ─
-  {
+  if(S('duels')){
     const matchsWithAdv=scoredMs.filter(m=>m.advFormation&&m.advFormation.trim());
     if(matchsWithAdv.length>=2){
       const duelStats={};
@@ -2395,7 +2426,7 @@ function exportDataPDF(){
   }
 
   // ── 8. DOMICILE vs EXTÉRIEUR ──────────────────────────────
-  {
+  if(S('domicile')){
     const homeStats={n:0,w:0,d:0,l:0,bg:0,bc:0},awayStats={n:0,w:0,d:0,l:0,bg:0,bc:0};
     ms.forEach(m=>{const tgt=m.lieu==='Domicile'?homeStats:m.lieu==='Extérieur'?awayStats:null;if(!tgt)return;tgt.n++;if(m.scoreUR!=null&&m.scoreAdv!=null){if(m.scoreUR>m.scoreAdv)tgt.w++;else if(m.scoreUR===m.scoreAdv)tgt.d++;else tgt.l++;tgt.bg+=m.scoreUR;tgt.bc+=m.scoreAdv;}});
     if(homeStats.n||awayStats.n){
@@ -2406,7 +2437,7 @@ function exportDataPDF(){
   }
 
   // ── 9. IMPACT DES REMPLAÇANTS ─────────────────────────────
-  {
+  if(S('remplacants')){
     let postSubGoalsUR=0,postSubGoalsAdv=0,subsTotal=0;
     ms.forEach(m=>{(m.goals||[]).forEach(g=>{if(g.postChg){if(g.team==='UR')postSubGoalsUR++;else postSubGoalsAdv++;}});subsTotal+=(m.subs||[]).length;});
     body+='<div class="pdf-sec"><h3>🔄 Impact des remplaçants</h3><div class="pdf-g3">';
@@ -2418,7 +2449,7 @@ function exportDataPDF(){
 
   // ── 10. IMPACT DES PROFILS PF ─────────────────────────────
   let topPfEntry=null;
-  {
+  if(S('profils')){
     const pfPerf={'Spécialiste':[],'Double':[],'Triple':[],'Complet':[],'Polyvalent':[]};
     scoredMs.forEach(m=>{
       const tids=Object.values(m.tit||{}).filter(Boolean);
@@ -2436,7 +2467,7 @@ function exportDataPDF(){
 
   // ── 11. MEILLEURES ASSOCIATIONS DE JOUEURS ────────────────
   let topPairEntry=null;
-  {
+  if(S('associations')){
     const pairStats={};
     scoredMs.forEach(m=>{
       const tids=Object.values(m.tit||{}).filter(Boolean);
@@ -2457,7 +2488,7 @@ function exportDataPDF(){
 
   // ── 12. TENDANCES ──────────────────────────────────────────
   let formeTrend=null,csPctVal=null;
-  {
+  if(S('tendances')){
     const sorted=[...scoredMs].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
     if(sorted.length){
       let streak=0,streakType='';
@@ -2485,7 +2516,7 @@ function exportDataPDF(){
   }
 
   // ── 13. INDICE DE COHÉRENCE TACTIQUE /100 ─────────────────
-  {
+  if(S('coherence')){
     if(scoredMs.length>=2){
       const globalWPct=Math.round(scoredMs.filter(m=>res(m)==='w').length/scoredMs.length*100);
       const fStats2={};scoredMs.forEach(m=>{const f=m.formation||'?';(fStats2[f]=fStats2[f]||[]).push(m);});
@@ -2514,7 +2545,7 @@ function exportDataPDF(){
   }
 
   // ── 14. RECOMMANDATIONS AUTOMATIQUES ──────────────────────
-  {
+  if(S('recommandations')){
     const recs=[];
     if(bestFEntry&&bestFEntry[1].length>=2){const s=statBox(bestFEntry[1]);recs.push('🗺 Système à privilégier : <b>'+bestFEntry[0]+'</b> ('+s.winPct+'% de victoires sur '+bestFEntry[1].length+' matchs)');}
     if(formeTrend==='🔥 En forme')recs.push('🔥 Dynamique positive — maintenez le système et la composition actuels.');
@@ -2528,7 +2559,7 @@ function exportDataPDF(){
   }
 
   // ── 15. CARTONS CUMULÉS ────────────────────────────────────
-  {
+  if(S('cartons')){
     let yUR=0,yAdv=0,rUR=0,rAdv=0;
     ms.forEach(m=>{(m.cards||[]).forEach(c=>{const isY=c.type==='jaune';const isR=(c.type==='rouge'||c.type==='jaune2');if(c.team==='UR'){if(isY)yUR++;if(isR)rUR++;}else{if(isY)yAdv++;if(isR)rAdv++;}});});
     if(yUR+yAdv+rUR+rAdv>0){
@@ -2540,7 +2571,7 @@ function exportDataPDF(){
   }
 
   // ── 16. POINTS PRIS PAR JOUEUR SELON LE TEMPS DE JEU (score en direct) ─
-  {
+  if(S('points')){
     const list=computePlayerScoreStateStats(ms);
     if(list.length){
       body+='<div class="pdf-sec"><h3>🎯 Points pris par joueur selon le temps de jeu (score en direct)</h3>';
@@ -2555,12 +2586,14 @@ function exportDataPDF(){
   }
 
   // ── 17. HISTORIQUE DES MATCHS ─────────────────────────────
+  if(S('historique')){
   body+='<div class="pdf-sec"><h3>📋 Historique des matchs</h3><table class="pdf-t"><tr><td style="font-weight:700;color:#64748b">Date</td><td style="font-weight:700;color:#64748b">Adversaire</td><td style="font-weight:700;color:#64748b">Score</td><td style="font-weight:700;color:#64748b">Compét.</td></tr>';
   [...ms].sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(m=>{
     const score=m.scoreUR!=null&&m.scoreAdv!=null?m.scoreUR+' - '+m.scoreAdv:'—';
     body+='<tr><td>'+new Date(m.date).toLocaleDateString('fr-FR')+'</td><td>'+(m.adv||'—')+'</td><td><b>'+score+'</b></td><td>'+(m.competition||m.compType||'—')+'</td></tr>';
   });
   body+='</table></div>';
+  }
 
   body+='<div class="pdf-ft">Généré le '+new Date().toLocaleDateString('fr-FR')+' par '+(CU?CU.name:'?')+' · UR Scout DB v4 · Filtre : '+filterLbl+' · '+ms.length+' match'+(ms.length>1?'s':'')+'</div>';
   showPDFView(body,'Données cumulées');
